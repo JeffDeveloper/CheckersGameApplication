@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #efe7d8;
+    --panel: #fffdf8;
+    --panel-border: #ddd0b4;
+    --dark-sq: #4b3527;
+    --light-sq: #d9c6a5;
+    --brass: #b98b3e;
+    --brass-dim: #cfa860;
+    --ink: #2a1f17;
+    --ink-soft: #6b5c48;
+    --cream-piece: #f4ede0;
+    --cream-piece-edge: #c9a227;
+    --walnut-piece: #241a13;
+    --walnut-piece-edge: #8c6a46;
+    --danger: #9a3b2c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(185,139,62,0.10), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(75,53,39,0.10), transparent 45%);
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px 60px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 960px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 18px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 2.4rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    max-width: 320px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .board-wrap {
+    background: linear-gradient(160deg, #5a4030, #3a2a1e);
+    padding: 16px;
+    border-radius: 6px;
+    box-shadow: 0 18px 40px -20px rgba(42,31,23,0.55);
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    border: 3px solid #2a1f17;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sq.light { background: var(--light-sq); }
+  .sq.dark  { background: var(--dark-sq); }
+
+  .sq.playable { cursor: pointer; }
+
+  .sq.selected::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 2px solid var(--brass);
+    border-radius: 3px;
+  }
+
+  .sq .dot {
+    width: 22%;
+    height: 22%;
+    border-radius: 50%;
+    background: var(--brass);
+    opacity: 0.85;
+  }
+  .sq .dot.capture {
+    background: transparent;
+    border: 4px solid var(--danger);
+    width: 40%;
+    height: 40%;
+  }
+
+  .piece {
+    width: 76%;
+    height: 76%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -4px 6px rgba(0,0,0,0.35), 0 3px 5px rgba(0,0,0,0.4);
+    transition: transform 0.12s ease;
+  }
+  .piece.cream {
+    background: radial-gradient(circle at 35% 30%, #fffaf0, var(--cream-piece) 70%);
+    border: 3px solid var(--cream-piece-edge);
+  }
+  .piece.walnut {
+    background: radial-gradient(circle at 35% 30%, #3b2c20, var(--walnut-piece) 70%);
+    border: 3px solid var(--walnut-piece-edge);
+  }
+  .piece.king::after {
+    content: "♛";
+    font-size: 1.1rem;
+    color: var(--brass);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+  }
+  .piece.walnut.king::after { color: var(--brass-dim); }
+
+  .sq.playable:hover .piece { transform: scale(1.06); }
+
+  /* side panel */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .turn-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .swatch.cream { background: var(--cream-piece); border: 2px solid var(--cream-piece-edge); }
+  .swatch.walnut { background: var(--walnut-piece); border: 2px solid var(--walnut-piece-edge); }
+
+  .status {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    min-height: 2.2em;
+  }
+  .status.win {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .divider { height: 1px; background: var(--panel-border); border: none; margin: 0; }
+
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: none;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--panel-border);
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+  select:disabled { color: #a89a84; }
+
+  .btn {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 5px;
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: filter 0.12s ease;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn.primary { background: var(--brass); color: #fff; }
+  .btn.ghost {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--ink);
+  }
+
+  .log-title {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin: 0 0 4px;
+  }
+  .log {
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 4px;
+  }
+  .log div { color: var(--ink-soft); }
+  .log div:last-child { color: var(--ink); font-weight: 500; }
+  .log::-webkit-scrollbar { width: 6px; }
+  .log::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 3px; }
+
+  .note {
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    border-top: 1px dashed var(--panel-border);
+    padding-top: 12px;
+  }
+
+  .hidden { display: none !important; }
+
+  /* main menu — centered on the page, big hero title above a compact card */
+  .menu-screen {
+    min-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 26px;
+    padding: 20px 0 40px;
+  }
+
+  .menu-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(3.4rem, 9vw, 6.2rem);
+    line-height: 0.92;
+    margin: 0;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .menu-tagline {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  .menu-rule {
+    width: 46px;
+    height: 2px;
+    background: var(--brass);
+    border: none;
+    margin: -4px 0 4px;
+  }
+
+  .menu-card {
+    display: grid;
+    grid-template-columns: 0.85fr 1fr;
+    width: 100%;
+    max-width: 720px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 24px 54px -28px rgba(42,31,23,0.5);
+  }
+  @media (max-width: 620px) {
+    .menu-card { grid-template-columns: 1fr; }
+  }
+
+  .menu-art {
+    background: linear-gradient(160deg, #4f3a2a, #241a12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+  @media (max-width: 620px) {
+    .menu-art { padding: 22px; }
+  }
+
+  .art-board {
+    display: grid;
+    grid-template-columns: repeat(8, 22px);
+    grid-template-rows: repeat(8, 22px);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 10px 26px -10px rgba(0,0,0,0.55);
+  }
+
+  .art-board .cell { display: flex; align-items: center; justify-content: center; }
+  .art-board .cell.light { background: var(--light-sq); }
+  .art-board .cell.dark { background: var(--dark-sq); }
+
+  .mini-piece {
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+  }
+  .mini-piece.cream {
+    background: radial-gradient(circle at 35% 30%, #fffaf0, var(--cream-piece) 70%);
+    border: 1.5px solid var(--cream-piece-edge);
+  }
+  .mini-piece.walnut {
+    background: radial-gradient(circle at 35% 30%, #3b2c20, var(--walnut-piece) 70%);
+    border: 1.5px solid var(--walnut-piece-edge);
+  }
+
+  .menu-content {
+    background: var(--panel);
+    padding: 34px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+  }
+  @media (max-width: 620px) {
+    .menu-content { padding: 26px 24px; }
+  }
+
+  .segmented {
+    display: flex;
+    border: 1.5px solid var(--panel-border);
+    border-radius: 7px;
+    overflow: hidden;
+    margin: 0 0 16px;
+  }
+  .seg {
+    flex: 1;
+    background: #fff;
+    border: none;
+    border-right: 1.5px solid var(--panel-border);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 11px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .seg:last-child { border-right: none; }
+  .seg.active { background: var(--brass); color: #fff; }
+  .seg:disabled { cursor: not-allowed; color: #b7a98f; }
+  .seg .soon {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 20px;
+  }
+  .seg.active .soon { color: var(--brass); background: #fff; }
+
+  .menu-content .btn.primary {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  .rules { margin-top: 18px; }
+  .rules summary {
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--brass);
+    list-style: none;
+  }
+  .rules summary::-webkit-details-marker { display: none; }
+  .rules p, .rules ul {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 10px 0 0;
+    padding-left: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- MAIN MENU -->
+  <div class="menu-screen" id="menuScreen">
+    <h1 class="menu-title">Checkers</h1>
+    <p class="menu-tagline">Two players, one screen, rules enforced automatically.</p>
+    <hr class="menu-rule">
+
+    <div class="menu-card">
+      <div class="menu-art">
+        <div class="art-board" id="artBoard" aria-hidden="true"></div>
+      </div>
+
+      <div class="menu-content">
+        <div class="segmented" id="modeGrid">
+          <button type="button" class="seg active" data-mode="human">Pass &amp; Play</button>
+          <button type="button" class="seg" data-mode="bot" disabled>Vs Computer <span class="soon">Soon</span></button>
+        </div>
+
+        <button class="btn primary" id="startBtn">Start game</button>
+
+        <details class="rules">
+          <summary>How to play</summary>
+          <ul>
+            <li>Move one square diagonally, forward only.</li>
+            <li>Jump an adjacent opposing piece to capture it — captures are mandatory, and chain if more are open.</li>
+            <li>Reach the far row to crown a king, which moves in any diagonal direction.</li>
+            <li>Win by leaving your opponent with no pieces or no legal move.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="game-screen hidden" id="gameScreen">
+    <header>
+      <div>
+        <h1>Checkers</h1>
+        <p></p>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="panel">
+        <div class="turn-indicator" id="turnIndicator">
+          <span class="swatch cream"></span> Cream to move
+        </div>
+        <div class="status" id="status">Select a piece to see its legal moves.</div>
+
+        <hr class="divider">
+
+        <div class="field">
+          <label for="opponent">Opponent</label>
+          <select id="opponent">
+            <option value="human" selected>Human (pass and play)</option>
+            <option value="bot" disabled>Computer — backend in progress</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="difficulty">Difficulty</label>
+          <select id="difficulty" disabled>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+        </div>
+
+        <button class="btn primary" id="newGameBtn">New game</button>
+        <button class="btn ghost" id="rematchBtn">Rematch</button>
+        <button class="btn ghost" id="menuBtn">Back to menu</button>
+
+        <hr class="divider">
+
+        <div>
+          <p class="log-title">Move history</p>
+          <div class="log" id="log"></div>
+        </div>
+
+        <p class="note">Prototype  only — move validation, forced captures, multi-jumps and king promotion run client-side here so we have something concrete to demo. Backend team can swap in the real engine and PvC bot behind this same UI.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const SIZE = 8;
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const turnEl = document.getElementById('turnIndicator');
+  const logEl = document.getElementById('log');
+
+  let board, current, selected, legalForSelected, forcedJumpChain, gameOver;
+
+  function emptyBoard() {
+    const b = [];
+    for (let r = 0; r < SIZE; r++) b.push(new Array(SIZE).fill(null));
+    return b;
+  }
+
+  function setupBoard() {
+    const b = emptyBoard();
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if ((r + c) % 2 === 1) {
+          if (r < 3) b[r][c] = { player: 'walnut', king: false };
+          else if (r > 4) b[r][c] = { player: 'cream', king: false };
+        }
+      }
+    }
+    return b;
+  }
+
+  function inBounds(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
+  function dirFor(player) { return player === 'cream' ? -1 : 1; }
+  function opponent(player) { return player === 'cream' ? 'walnut' : 'cream'; }
+
+  function pieceMoves(b, r, c) {
+    const piece = b[r][c];
+    const moves = [];
+    const jumps = [];
+    const dirs = piece.king ? [-1, 1] : [dirFor(piece.player)];
+    for (const dr of dirs) {
+      for (const dc of [-1, 1]) {
+        const nr = r + dr, nc = c + dc;
+        if (inBounds(nr, nc) && !b[nr][nc]) {
+          moves.push({ from: [r, c], to: [nr, nc], capture: null });
+        }
+        const jr = r + dr * 2, jc = c + dc * 2;
+        const mr = r + dr, mc = c + dc;
+        if (inBounds(jr, jc) && !b[jr][jc] && inBounds(mr, mc) && b[mr][mc] && b[mr][mc].player === opponent(piece.player)) {
+          jumps.push({ from: [r, c], to: [jr, jc], capture: [mr, mc] });
+        }
+      }
+    }
+    return { moves, jumps };
+  }
+
+  function allMovesFor(b, player) {
+    let moves = [], jumps = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const p = b[r][c];
+        if (p && p.player === player) {
+          const pm = pieceMoves(b, r, c);
+          moves = moves.concat(pm.moves);
+          jumps = jumps.concat(pm.jumps);
+        }
+      }
+    }
+    return jumps.length ? jumps : moves; // forced capture rule
+  }
+
+  function squareLabel(r, c) {
+    const files = 'abcdefgh';
+    return files[c] + (SIZE - r);
+  }
+
+  function logMove(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function newGame() {
+    board = setupBoard();
+    current = 'cream';
+    selected = null;
+    legalForSelected = [];
+    forcedJumpChain = false;
+    gameOver = false;
+    logEl.innerHTML = '';
+    setStatus('Select a piece to see its legal moves.');
+    render();
+  }
+
+  function setStatus(text, isWin) {
+    statusEl.textContent = text;
+    statusEl.classList.toggle('win', !!isWin);
+  }
+
+  function updateTurnIndicator() {
+    turnEl.innerHTML = `<span class="swatch ${current}"></span> ${current === 'cream' ? 'Cream' : 'Walnut'} to move`;
+  }
+
+  function checkGameEnd() {
+    const moves = allMovesFor(board, current);
+    if (moves.length === 0) {
+      gameOver = true;
+      const winner = opponent(current);
+      setStatus(`${winner === 'cream' ? 'Cream' : 'Walnut'} wins — ${current} has no legal moves.`, true);
+      logMove(`Game over: ${winner} wins`);
+      return true;
+    }
+    return false;
+  }
+
+  function applyMove(move) {
+    const [fr, fc] = move.from;
+    const [tr, tc] = move.to;
+    const piece = board[fr][fc];
+    board[fr][fc] = null;
+    board[tr][tc] = piece;
+    if (move.capture) {
+      const [cr, cc] = move.capture;
+      board[cr][cc] = null;
+    }
+    let promoted = false;
+    if (!piece.king && ((piece.player === 'cream' && tr === 0) || (piece.player === 'walnut' && tr === SIZE - 1))) {
+      piece.king = true;
+      promoted = true;
+    }
+    const moveText = `${current === 'cream' ? 'Cream' : 'Walnut'}: ${squareLabel(fr, fc)} → ${squareLabel(tr, tc)}${move.capture ? ' (capture)' : ''}${promoted ? ' — crowned' : ''}`;
+    logMove(moveText);
+
+    if (move.capture) {
+      const further = pieceMoves(board, tr, tc).jumps;
+      if (further.length && !promoted === !promoted) {
+        // allow multi-jump only if not just promoted mid-chain in most rule sets pieces may continue; keep simple: continue if jumps exist
+        if (further.length) {
+          selected = [tr, tc];
+          legalForSelected = further;
+          forcedJumpChain = true;
+          render();
+          setStatus('Multi-jump available — continue with the highlighted piece.');
+          return;
+        }
+      }
+    }
+
+    selected = null;
+    legalForSelected = [];
+    forcedJumpChain = false;
+    current = opponent(current);
+    updateTurnIndicator();
+    if (!checkGameEnd()) {
+      setStatus('Select a piece to see its legal moves.');
+    }
+    render();
+  }
+
+  function onSquareClick(r, c) {
+    if (gameOver) return;
+    const piece = board[r][c];
+    const all = allMovesFor(board, current);
+
+    if (forcedJumpChain) {
+      const move = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
+      if (move) applyMove(move);
+      return;
+    }
+
+    if (selected) {
+      const move = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
+      if (move) { applyMove(move); return; }
+    }
+
+    if (piece && piece.player === current) {
+      const pieceLegal = all.filter(m => m.from[0] === r && m.from[1] === c);
+      if (pieceLegal.length === 0) {
+        setStatus('That piece has no legal move right now — a capture may be forced elsewhere.');
+        selected = null;
+        legalForSelected = [];
+      } else {
+        selected = [r, c];
+        legalForSelected = pieceLegal;
+        setStatus(`${pieceLegal.length} legal move${pieceLegal.length > 1 ? 's' : ''} highlighted.`);
+      }
+      render();
+    }
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const sq = document.createElement('div');
+        const isDark = (r + c) % 2 === 1;
+        sq.className = 'sq ' + (isDark ? 'dark' : 'light');
+        if (isDark) sq.classList.add('playable');
+
+        if (selected && selected[0] === r && selected[1] === c) sq.classList.add('selected');
+
+        const piece = board[r][c];
+        if (piece) {
+          const pEl = document.createElement('div');
+          pEl.className = 'piece ' + piece.player + (piece.king ? ' king' : '');
+          sq.appendChild(pEl);
+        }
+
+        const moveHere = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
+        if (moveHere) {
+          const dot = document.createElement('div');
+          dot.className = 'dot' + (moveHere.capture ? ' capture' : '');
+          sq.appendChild(dot);
+        }
+
+        if (isDark) sq.addEventListener('click', () => onSquareClick(r, c));
+        boardEl.appendChild(sq);
+      }
+    }
+  }
+
+  // decorative mini-board for the menu art panel — mirrors the real starting position
+  function renderMenuArt() {
+    const artBoard = document.getElementById('artBoard');
+    if (!artBoard) return;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const cell = document.createElement('div');
+        const isDark = (r + c) % 2 === 1;
+        cell.className = 'cell ' + (isDark ? 'dark' : 'light');
+        if (isDark) {
+          if (r < 3) {
+            const p = document.createElement('div');
+            p.className = 'mini-piece walnut';
+            cell.appendChild(p);
+          } else if (r > 4) {
+            const p = document.createElement('div');
+            p.className = 'mini-piece cream';
+            cell.appendChild(p);
+          }
+        }
+        artBoard.appendChild(cell);
+      }
+    }
+  }
+  renderMenuArt();
+
+  document.getElementById('newGameBtn').addEventListener('click', newGame);
+  document.getElementById('rematchBtn').addEventListener('click', newGame);
+
+  // menu <-> game screen
+  const menuScreen = document.getElementById('menuScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const startBtn = document.getElementById('startBtn');
+  const menuBtn = document.getElementById('menuBtn');
+
+  document.querySelectorAll('.seg').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      document.querySelectorAll('.seg').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  startBtn.addEventListener('click', () => {
+    menuScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    newGame();
+  });
+
+  menuBtn.addEventListener('click', () => {
+    gameScreen.classList.add('hidden');
+    menuScreen.classList.remove('hidden');
+  });
+})();
+</script>
+
+</body>
+</html>
