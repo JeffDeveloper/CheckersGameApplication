@@ -1,1 +1,0 @@
-// Representative/state of the pieces
