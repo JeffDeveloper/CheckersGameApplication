@@ -1,0 +1,10 @@
+# Keep local credentials and private key files out of Git.
+.env
+.env.*
+.npmrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json

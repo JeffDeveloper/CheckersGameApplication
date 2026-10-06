@@ -8,20 +8,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #efe7d8;
-    --panel: #fffdf8;
-    --panel-border: #ddd0b4;
-    --dark-sq: #4b3527;
-    --light-sq: #d9c6a5;
-    --brass: #b98b3e;
-    --brass-dim: #cfa860;
-    --ink: #2a1f17;
-    --ink-soft: #6b5c48;
-    --cream-piece: #f4ede0;
-    --cream-piece-edge: #c9a227;
-    --walnut-piece: #241a13;
-    --walnut-piece-edge: #8c6a46;
-    --danger: #9a3b2c;
+    --bg: #e9edf1;
+    --panel: #ffffff;
+    --panel-border: #c8d0d8;
+    --dark-sq: #555e67;
+    --light-sq: #e2e7ec;
+    --brass: #1768b6;
+    --brass-dim: #6cc9ff;
+    --ink: #1c242c;
+    --ink-soft: #4d5964;
+    --white-piece: #ffffff;
+    --white-piece-edge: #34424f;
+    --black-piece: #10151b;
+    --black-piece-edge: #e7edf3;
+    --danger: #ff6b5f;
   }
 
   * { box-sizing: border-box; }
@@ -31,8 +31,8 @@
     min-height: 100vh;
     background: var(--bg);
     background-image:
-      radial-gradient(circle at 15% 10%, rgba(185,139,62,0.10), transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(75,53,39,0.10), transparent 45%);
+      radial-gradient(circle at 15% 10%, rgba(23,104,182,0.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(40,49,58,0.08), transparent 45%);
     font-family: 'Inter', sans-serif;
     color: var(--ink);
     display: flex;
@@ -83,10 +83,10 @@
   }
 
   .board-wrap {
-    background: linear-gradient(160deg, #5a4030, #3a2a1e);
+    background: linear-gradient(160deg, #3a4651, #1e2831);
     padding: 16px;
     border-radius: 6px;
-    box-shadow: 0 18px 40px -20px rgba(42,31,23,0.55);
+    box-shadow: 0 18px 40px -20px rgba(20,30,40,0.55);
   }
 
   .board {
@@ -95,12 +95,15 @@
     grid-template-rows: repeat(8, 1fr);
     aspect-ratio: 1 / 1;
     width: 100%;
-    border: 3px solid #2a1f17;
+    border: 3px solid #17212a;
     border-radius: 2px;
     overflow: hidden;
   }
 
   .sq {
+    border: 0;
+    padding: 0;
+    appearance: none;
     position: relative;
     display: flex;
     align-items: center;
@@ -110,27 +113,33 @@
   .sq.dark  { background: var(--dark-sq); }
 
   .sq.playable { cursor: pointer; }
+  .sq:focus-visible { outline: 4px solid #80e8ff; outline-offset: -4px; z-index: 1; }
+  .sq.last-from { box-shadow: inset 0 0 0 5px #a6dbff; }
+  .sq.last-to { box-shadow: inset 0 0 0 6px #ffd452; }
 
   .sq.selected::before {
     content: "";
     position: absolute;
-    inset: 3px;
-    border: 2px solid var(--brass);
+    inset: 4px;
+    border: 4px solid #7ae7ff;
     border-radius: 3px;
+    z-index: 2;
+    pointer-events: none;
   }
 
   .sq .dot {
-    width: 22%;
-    height: 22%;
+    width: 32%;
+    height: 32%;
     border-radius: 50%;
-    background: var(--brass);
-    opacity: 0.85;
+    background: #85eaff;
+    box-shadow: 0 0 0 4px rgba(8,38,55,0.55), 0 0 14px #85eaff;
   }
   .sq .dot.capture {
     background: transparent;
-    border: 4px solid var(--danger);
-    width: 40%;
-    height: 40%;
+    border: 6px solid var(--danger);
+    width: 54%;
+    height: 54%;
+    box-shadow: 0 0 0 3px rgba(20,20,20,0.6);
   }
 
   .piece {
@@ -143,21 +152,21 @@
     box-shadow: inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -4px 6px rgba(0,0,0,0.35), 0 3px 5px rgba(0,0,0,0.4);
     transition: transform 0.12s ease;
   }
-  .piece.cream {
-    background: radial-gradient(circle at 35% 30%, #fffaf0, var(--cream-piece) 70%);
-    border: 3px solid var(--cream-piece-edge);
+  .piece.white {
+    background: radial-gradient(circle at 35% 30%, #ffffff, var(--white-piece) 70%);
+    border: 3px solid var(--white-piece-edge);
   }
-  .piece.walnut {
-    background: radial-gradient(circle at 35% 30%, #3b2c20, var(--walnut-piece) 70%);
-    border: 3px solid var(--walnut-piece-edge);
+  .piece.black {
+    background: radial-gradient(circle at 35% 30%, #303943, var(--black-piece) 70%);
+    border: 3px solid var(--black-piece-edge);
   }
   .piece.king::after {
     content: "♛";
     font-size: 1.1rem;
-    color: var(--brass);
+    color: #1666af;
     text-shadow: 0 1px 1px rgba(0,0,0,0.4);
   }
-  .piece.walnut.king::after { color: var(--brass-dim); }
+  .piece.black.king::after { color: #8ce0ff; }
 
   .sq.playable:hover .piece { transform: scale(1.06); }
 
@@ -186,8 +195,8 @@
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .swatch.cream { background: var(--cream-piece); border: 2px solid var(--cream-piece-edge); }
-  .swatch.walnut { background: var(--walnut-piece); border: 2px solid var(--walnut-piece-edge); }
+  .swatch.white { background: var(--white-piece); border: 2px solid var(--white-piece-edge); }
+  .swatch.black { background: var(--black-piece); border: 2px solid var(--black-piece-edge); }
 
   .status {
     font-size: 0.85rem;
@@ -199,6 +208,7 @@
     color: var(--ink);
     font-weight: 600;
   }
+  .move-legend { font-size: 0.76rem; color: var(--ink-soft); line-height: 1.5; margin: -10px 0 0; }
 
   .divider { height: 1px; background: var(--panel-border); border: none; margin: 0; }
 
@@ -269,7 +279,7 @@
 
   .hidden { display: none !important; }
 
-  /* main menu — centered on the page, big hero title above a compact card */
+  /* Home screen */
   .menu-screen {
     min-height: 82vh;
     display: flex;
@@ -277,8 +287,17 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 26px;
+    gap: 20px;
     padding: 20px 0 40px;
+  }
+
+  .eyebrow, .section-kicker {
+    margin: 0;
+    color: var(--brass);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .menu-title {
@@ -292,7 +311,9 @@
   }
   .menu-tagline {
     color: var(--ink-soft);
-    font-size: 0.95rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    max-width: 560px;
     margin: 0;
   }
   .menu-rule {
@@ -305,20 +326,22 @@
 
   .menu-card {
     display: grid;
-    grid-template-columns: 0.85fr 1fr;
+    grid-template-columns: 0.9fr 1.1fr;
     width: 100%;
-    max-width: 720px;
+    max-width: 840px;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 24px 54px -28px rgba(42,31,23,0.5);
+    box-shadow: 0 24px 54px -28px rgba(20,30,40,0.42);
   }
   @media (max-width: 620px) {
     .menu-card { grid-template-columns: 1fr; }
   }
 
   .menu-art {
-    background: linear-gradient(160deg, #4f3a2a, #241a12);
+    background: linear-gradient(160deg, #3c4955, #1b242d);
     display: flex;
+    flex-direction: column;
+    gap: 18px;
     align-items: center;
     justify-content: center;
     padding: 28px;
@@ -329,12 +352,14 @@
 
   .art-board {
     display: grid;
-    grid-template-columns: repeat(8, 22px);
-    grid-template-rows: repeat(8, 22px);
+    grid-template-columns: repeat(8, clamp(22px, 3vw, 30px));
+    grid-template-rows: repeat(8, clamp(22px, 3vw, 30px));
     border-radius: 2px;
     overflow: hidden;
     box-shadow: 0 10px 26px -10px rgba(0,0,0,0.55);
   }
+
+  .art-caption { margin: 0; color: #d7e7f4; font-size: 0.82rem; }
 
   .art-board .cell { display: flex; align-items: center; justify-content: center; }
   .art-board .cell.light { background: var(--light-sq); }
@@ -345,52 +370,57 @@
     height: 70%;
     border-radius: 50%;
   }
-  .mini-piece.cream {
-    background: radial-gradient(circle at 35% 30%, #fffaf0, var(--cream-piece) 70%);
-    border: 1.5px solid var(--cream-piece-edge);
+  .mini-piece.white {
+    background: radial-gradient(circle at 35% 30%, #ffffff, var(--white-piece) 70%);
+    border: 1.5px solid var(--white-piece-edge);
   }
-  .mini-piece.walnut {
-    background: radial-gradient(circle at 35% 30%, #3b2c20, var(--walnut-piece) 70%);
-    border: 1.5px solid var(--walnut-piece-edge);
+
+  .mini-piece.black {
+    background: radial-gradient(circle at 35% 30%, #303943, var(--black-piece) 70%);
+    border: 1.5px solid var(--black-piece-edge);
   }
 
   .menu-content {
     background: var(--panel);
-    padding: 34px 32px;
+    padding: 34px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     text-align: left;
   }
+  .menu-card-title { margin: 9px 0 7px; font-family: 'Fraunces', serif; font-size: 1.7rem; }
+  .menu-card-copy { margin: 0 0 20px; color: var(--ink-soft); font-size: 0.85rem; line-height: 1.5; }
   @media (max-width: 620px) {
     .menu-content { padding: 26px 24px; }
   }
 
   .segmented {
     display: flex;
-    border: 1.5px solid var(--panel-border);
-    border-radius: 7px;
-    overflow: hidden;
+    gap: 10px;
     margin: 0 0 16px;
   }
   .seg {
     flex: 1;
     background: #fff;
-    border: none;
-    border-right: 1.5px solid var(--panel-border);
+    border: 2px solid var(--panel-border);
+    border-radius: 8px;
     font-family: inherit;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--ink-soft);
-    padding: 11px 8px;
+    padding: 14px 12px;
     cursor: pointer;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 4px;
   }
-  .seg:last-child { border-right: none; }
-  .seg.active { background: var(--brass); color: #fff; }
+  .seg strong { font-size: 0.9rem; color: var(--ink); }
+  .seg small { font-size: 0.72rem; line-height: 1.35; }
+  .seg.active { background: #eaf5ff; border-color: var(--brass); color: #285075; box-shadow: 0 0 0 2px rgba(23,104,182,0.12); }
+  .seg.active strong { color: #174f83; }
+  .seg:focus-visible, .btn:focus-visible { outline: 3px solid #75cfff; outline-offset: 2px; }
   .seg:disabled { cursor: not-allowed; color: #b7a98f; }
   .seg .soon {
     font-size: 0.62rem;
@@ -406,8 +436,21 @@
     width: 100%;
     padding: 12px 20px;
   }
+  .start-note { margin: 9px 0 0; text-align: center; color: var(--ink-soft); font-size: 0.73rem; }
+
+  .result-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(10,18,26,0.72); }
+  .result-card { width: min(100%, 410px); background: var(--panel); border-radius: 14px; padding: 32px; text-align: center; box-shadow: 0 25px 65px rgba(0,0,0,0.35); }
+  .result-token { width: 62px; height: 62px; margin: 0 auto 18px; border-radius: 50%; box-shadow: inset 0 3px 6px rgba(255,255,255,0.2), inset 0 -5px 8px rgba(0,0,0,0.25), 0 5px 15px rgba(0,0,0,0.25); }
+  .result-token.white { background: var(--white-piece); border: 4px solid var(--white-piece-edge); }
+  .result-token.black { background: var(--black-piece); border: 4px solid var(--black-piece-edge); }
+  .result-card h2 { font-family: 'Fraunces', serif; font-size: 2.25rem; margin: 8px 0; }
+  .result-card p { color: var(--ink-soft); line-height: 1.5; }
+  .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
 
   .rules { margin-top: 18px; }
+  .settings { margin-top: 0; }
+  .sound-setting { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .82rem; color: var(--ink); cursor: pointer; }
+  .sound-setting input { accent-color: var(--brass); }
   .rules summary {
     cursor: pointer;
     font-size: 0.78rem;
@@ -416,13 +459,6 @@
     list-style: none;
   }
   .rules summary::-webkit-details-marker { display: none; }
-  .rules p, .rules ul {
-    font-size: 0.78rem;
-    color: var(--ink-soft);
-    line-height: 1.5;
-    margin: 10px 0 0;
-    padding-left: 18px;
-  }
 </style>
 </head>
 <body>
@@ -431,32 +467,32 @@
 
   <!-- MAIN MENU -->
   <div class="menu-screen" id="menuScreen">
+    <p class="eyebrow">A classic on your screen</p>
     <h1 class="menu-title">Checkers</h1>
-    <p class="menu-tagline">Two players, one screen, rules enforced automatically.</p>
+    <p class="menu-tagline">Plan your jumps and play a full game together or against an easy computer opponent.</p>
     <hr class="menu-rule">
 
     <div class="menu-card">
       <div class="menu-art">
         <div class="art-board" id="artBoard" aria-hidden="true"></div>
+        <p class="art-caption">White moves first · Black waits across the board</p>
       </div>
 
       <div class="menu-content">
+        <p class="section-kicker">Start a match</p>
+        <h2 class="menu-card-title">How will you play?</h2>
+        <p class="menu-card-copy">Choose an opponent, then start from a fresh board.</p>
         <div class="segmented" id="modeGrid">
-          <button type="button" class="seg active" data-mode="human">Pass &amp; Play</button>
-          <button type="button" class="seg" data-mode="bot" disabled>Vs Computer <span class="soon">Soon</span></button>
+          <button type="button" class="seg active" data-mode="friend"><strong>Pass &amp; Play</strong><small>Two people, one screen</small></button>
+          <button type="button" class="seg" data-mode="bot"><strong>Vs Computer</strong><small>Easy solo game</small></button>
         </div>
 
         <button class="btn primary" id="startBtn">Start game</button>
-
-        <details class="rules">
-          <summary>How to play</summary>
-          <ul>
-            <li>Move one square diagonally, forward only.</li>
-            <li>Jump an adjacent opposing piece to capture it — captures are mandatory, and chain if more are open.</li>
-            <li>Reach the far row to crown a king, which moves in any diagonal direction.</li>
-            <li>Win by leaving your opponent with no pieces or no legal move.</li>
-          </ul>
+        <p class="start-note">No account needed · Play in your browser</p>
+        <details class="rules settings"><summary>Settings</summary>
+          <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
         </details>
+
       </div>
     </div>
   </div>
@@ -477,27 +513,23 @@
 
       <div class="panel">
         <div class="turn-indicator" id="turnIndicator">
-          <span class="swatch cream"></span> Cream to move
+          <span class="swatch white"></span> White to move
         </div>
-        <div class="status" id="status">Select a piece to see its legal moves.</div>
+        <div class="status" id="status" aria-live="polite">Select a piece to see its legal moves.</div>
+        <p class="move-legend">Blue ring: selected piece · Cyan dot: legal move · Yellow ring: last move</p>
 
         <hr class="divider">
 
         <div class="field">
           <label for="opponent">Opponent</label>
           <select id="opponent">
-            <option value="human" selected>Human (pass and play)</option>
-            <option value="bot" disabled>Computer — backend in progress</option>
+            <option value="friend" selected>Friend (pass and play)</option>
+            <option value="bot">Computer (easy)</option>
           </select>
         </div>
-        <div class="field">
-          <label for="difficulty">Difficulty</label>
-          <select id="difficulty" disabled>
-            <option>Easy</option>
-            <option>Medium</option>
-            <option>Hard</option>
-          </select>
-        </div>
+        <details class="rules settings"><summary>Settings</summary>
+          <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+        </details>
 
         <button class="btn primary" id="newGameBtn">New game</button>
         <button class="btn ghost" id="rematchBtn">Rematch</button>
@@ -510,287 +542,27 @@
           <div class="log" id="log"></div>
         </div>
 
-        <p class="note">Prototype  only — move validation, forced captures, multi-jumps and king promotion run client-side here so we have something concrete to demo. Backend team can swap in the real engine and PvC bot behind this same UI.</p>
+        <p class="note">8×8 checkers with forced captures and chain jumps. White moves first.</p>
+      </div>
+    </div>
+    <div class="result-overlay hidden" id="resultOverlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-describedby="resultReason">
+      <div class="result-card">
+        <div class="result-token white" id="resultToken" aria-hidden="true"></div>
+        <p class="section-kicker">Game over</p>
+        <h2 id="resultTitle">White wins!</h2>
+        <p id="resultReason">Black has no legal moves.</p>
+        <div class="result-actions">
+          <button class="btn primary" id="resultRematchBtn">Play again</button>
+          <button class="btn ghost" id="resultHomeBtn">Home</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-(function () {
-  const SIZE = 8;
-  const boardEl = document.getElementById('board');
-  const statusEl = document.getElementById('status');
-  const turnEl = document.getElementById('turnIndicator');
-  const logEl = document.getElementById('log');
-
-  let board, current, selected, legalForSelected, forcedJumpChain, gameOver;
-
-  function emptyBoard() {
-    const b = [];
-    for (let r = 0; r < SIZE; r++) b.push(new Array(SIZE).fill(null));
-    return b;
-  }
-
-  function setupBoard() {
-    const b = emptyBoard();
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if ((r + c) % 2 === 1) {
-          if (r < 3) b[r][c] = { player: 'walnut', king: false };
-          else if (r > 4) b[r][c] = { player: 'cream', king: false };
-        }
-      }
-    }
-    return b;
-  }
-
-  function inBounds(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
-  function dirFor(player) { return player === 'cream' ? -1 : 1; }
-  function opponent(player) { return player === 'cream' ? 'walnut' : 'cream'; }
-
-  function pieceMoves(b, r, c) {
-    const piece = b[r][c];
-    const moves = [];
-    const jumps = [];
-    const dirs = piece.king ? [-1, 1] : [dirFor(piece.player)];
-    for (const dr of dirs) {
-      for (const dc of [-1, 1]) {
-        const nr = r + dr, nc = c + dc;
-        if (inBounds(nr, nc) && !b[nr][nc]) {
-          moves.push({ from: [r, c], to: [nr, nc], capture: null });
-        }
-        const jr = r + dr * 2, jc = c + dc * 2;
-        const mr = r + dr, mc = c + dc;
-        if (inBounds(jr, jc) && !b[jr][jc] && inBounds(mr, mc) && b[mr][mc] && b[mr][mc].player === opponent(piece.player)) {
-          jumps.push({ from: [r, c], to: [jr, jc], capture: [mr, mc] });
-        }
-      }
-    }
-    return { moves, jumps };
-  }
-
-  function allMovesFor(b, player) {
-    let moves = [], jumps = [];
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const p = b[r][c];
-        if (p && p.player === player) {
-          const pm = pieceMoves(b, r, c);
-          moves = moves.concat(pm.moves);
-          jumps = jumps.concat(pm.jumps);
-        }
-      }
-    }
-    return jumps.length ? jumps : moves; // forced capture rule
-  }
-
-  function squareLabel(r, c) {
-    const files = 'abcdefgh';
-    return files[c] + (SIZE - r);
-  }
-
-  function logMove(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function newGame() {
-    board = setupBoard();
-    current = 'cream';
-    selected = null;
-    legalForSelected = [];
-    forcedJumpChain = false;
-    gameOver = false;
-    logEl.innerHTML = '';
-    setStatus('Select a piece to see its legal moves.');
-    render();
-  }
-
-  function setStatus(text, isWin) {
-    statusEl.textContent = text;
-    statusEl.classList.toggle('win', !!isWin);
-  }
-
-  function updateTurnIndicator() {
-    turnEl.innerHTML = `<span class="swatch ${current}"></span> ${current === 'cream' ? 'Cream' : 'Walnut'} to move`;
-  }
-
-  function checkGameEnd() {
-    const moves = allMovesFor(board, current);
-    if (moves.length === 0) {
-      gameOver = true;
-      const winner = opponent(current);
-      setStatus(`${winner === 'cream' ? 'Cream' : 'Walnut'} wins — ${current} has no legal moves.`, true);
-      logMove(`Game over: ${winner} wins`);
-      return true;
-    }
-    return false;
-  }
-
-  function applyMove(move) {
-    const [fr, fc] = move.from;
-    const [tr, tc] = move.to;
-    const piece = board[fr][fc];
-    board[fr][fc] = null;
-    board[tr][tc] = piece;
-    if (move.capture) {
-      const [cr, cc] = move.capture;
-      board[cr][cc] = null;
-    }
-    let promoted = false;
-    if (!piece.king && ((piece.player === 'cream' && tr === 0) || (piece.player === 'walnut' && tr === SIZE - 1))) {
-      piece.king = true;
-      promoted = true;
-    }
-    const moveText = `${current === 'cream' ? 'Cream' : 'Walnut'}: ${squareLabel(fr, fc)} → ${squareLabel(tr, tc)}${move.capture ? ' (capture)' : ''}${promoted ? ' — crowned' : ''}`;
-    logMove(moveText);
-
-    if (move.capture) {
-      const further = pieceMoves(board, tr, tc).jumps;
-      if (further.length && !promoted === !promoted) {
-        // allow multi-jump only if not just promoted mid-chain in most rule sets pieces may continue; keep simple: continue if jumps exist
-        if (further.length) {
-          selected = [tr, tc];
-          legalForSelected = further;
-          forcedJumpChain = true;
-          render();
-          setStatus('Multi-jump available — continue with the highlighted piece.');
-          return;
-        }
-      }
-    }
-
-    selected = null;
-    legalForSelected = [];
-    forcedJumpChain = false;
-    current = opponent(current);
-    updateTurnIndicator();
-    if (!checkGameEnd()) {
-      setStatus('Select a piece to see its legal moves.');
-    }
-    render();
-  }
-
-  function onSquareClick(r, c) {
-    if (gameOver) return;
-    const piece = board[r][c];
-    const all = allMovesFor(board, current);
-
-    if (forcedJumpChain) {
-      const move = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
-      if (move) applyMove(move);
-      return;
-    }
-
-    if (selected) {
-      const move = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
-      if (move) { applyMove(move); return; }
-    }
-
-    if (piece && piece.player === current) {
-      const pieceLegal = all.filter(m => m.from[0] === r && m.from[1] === c);
-      if (pieceLegal.length === 0) {
-        setStatus('That piece has no legal move right now — a capture may be forced elsewhere.');
-        selected = null;
-        legalForSelected = [];
-      } else {
-        selected = [r, c];
-        legalForSelected = pieceLegal;
-        setStatus(`${pieceLegal.length} legal move${pieceLegal.length > 1 ? 's' : ''} highlighted.`);
-      }
-      render();
-    }
-  }
-
-  function render() {
-    boardEl.innerHTML = '';
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const sq = document.createElement('div');
-        const isDark = (r + c) % 2 === 1;
-        sq.className = 'sq ' + (isDark ? 'dark' : 'light');
-        if (isDark) sq.classList.add('playable');
-
-        if (selected && selected[0] === r && selected[1] === c) sq.classList.add('selected');
-
-        const piece = board[r][c];
-        if (piece) {
-          const pEl = document.createElement('div');
-          pEl.className = 'piece ' + piece.player + (piece.king ? ' king' : '');
-          sq.appendChild(pEl);
-        }
-
-        const moveHere = legalForSelected.find(m => m.to[0] === r && m.to[1] === c);
-        if (moveHere) {
-          const dot = document.createElement('div');
-          dot.className = 'dot' + (moveHere.capture ? ' capture' : '');
-          sq.appendChild(dot);
-        }
-
-        if (isDark) sq.addEventListener('click', () => onSquareClick(r, c));
-        boardEl.appendChild(sq);
-      }
-    }
-  }
-
-  // decorative mini-board for the menu art panel — mirrors the real starting position
-  function renderMenuArt() {
-    const artBoard = document.getElementById('artBoard');
-    if (!artBoard) return;
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const cell = document.createElement('div');
-        const isDark = (r + c) % 2 === 1;
-        cell.className = 'cell ' + (isDark ? 'dark' : 'light');
-        if (isDark) {
-          if (r < 3) {
-            const p = document.createElement('div');
-            p.className = 'mini-piece walnut';
-            cell.appendChild(p);
-          } else if (r > 4) {
-            const p = document.createElement('div');
-            p.className = 'mini-piece cream';
-            cell.appendChild(p);
-          }
-        }
-        artBoard.appendChild(cell);
-      }
-    }
-  }
-  renderMenuArt();
-
-  document.getElementById('newGameBtn').addEventListener('click', newGame);
-  document.getElementById('rematchBtn').addEventListener('click', newGame);
-
-  // menu <-> game screen
-  const menuScreen = document.getElementById('menuScreen');
-  const gameScreen = document.getElementById('gameScreen');
-  const startBtn = document.getElementById('startBtn');
-  const menuBtn = document.getElementById('menuBtn');
-
-  document.querySelectorAll('.seg').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.disabled) return;
-      document.querySelectorAll('.seg').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-
-  startBtn.addEventListener('click', () => {
-    menuScreen.classList.add('hidden');
-    gameScreen.classList.remove('hidden');
-    newGame();
-  });
-
-  menuBtn.addEventListener('click', () => {
-    gameScreen.classList.add('hidden');
-    menuScreen.classList.remove('hidden');
-  });
-})();
-</script>
+<script src="js/logic/draughtAdapter.js"></script>
+<script src="js/bot/bot.js"></script>
+<script src="js/game.js"></script>
 
 </body>
 </html>
