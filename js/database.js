@@ -25,6 +25,8 @@ AppSettings | settingsId | opponentMode, aiDifficulty
     let dbPromise = null;
 
     // General IndexedDB helpers
+    // requestResult takes an IndexedDB request and returns a Promise
+    // that resolves with the request result or rejects if the request fails.
     function requestResult(request) {
         return new Promise((resolve, reject) => {
             request.onsuccess = () => resolve(request.result);
@@ -33,7 +35,8 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             );
         });
     }
-
+    // transactionDone returns a Promise that resolves withen a database transaction
+    // completes or rejects if the transaction fails or is aborted.
     function transactionDone(transaction) {
         return new Promise((resolve, reject) => {
             transaction.oncomplete = () => resolve();
@@ -53,7 +56,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         }
         return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
     }
-
+    // Creates a copy of the board, including each piece's color and king status
     function cloneBoard(board) {
         if (!Array.isArray(board) || board.length !== 8) {
             throw new TypeError('Expected an 8x8 checkers board.');
@@ -75,13 +78,14 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             });
         });
     }
-
+    // Creats a copy of a board position represented by a [row, column] array, after validating its coordinates.
     function clonePosition(position) {
         if (!Array.isArray(position) || position.length !== 2 || !position.every(Number.isInteger) || position.some(n => n < 0 || n > 7)) {
             throw new TypeError('Expected a board position [row, column].');
         }
         return [...position];
     }
+    // Opens the CheckersDatabase database and creates the required object stores and indexes if they do not exist.
     function openDatabase() {
         if (dbPromise) return dbPromise;
         if (!root.indexedDB) {
@@ -162,6 +166,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
     }
 
     // Game sessions
+    // Creates a new game session with the provided options and default values.
     function createGameSession(options = {}) {
         const now = new Date().toISOString();
 
@@ -176,6 +181,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             updatedAt: now
         };
     }
+    // Saves a game session to the database, updating its last-modified timestamp.
     async function saveGameSession(session) {
         if (!session || !session.gameId) {
             throw new TypeError('A game ession must have a gameId.');
@@ -199,16 +205,19 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         );
         return record;
     }
+    // Retrieves a specific game session using its game ID.
     async function getGameSession(gameId) {
         return runTransaction(STORES.SESSIONS, 'readonly', tx =>
             requestResult(tx.objectStore(STORES.SESSIONS).get(gameId))
         );
     }
+    // Retrieves all saved game sessions, sorted by most recently updated.
     async function listGameSessions() {
         const sessions = await runTransaction(STORES.SESSIONS, 'readonly', tx => requestResult(tx.objectStore(STORES.SESSIONS).getAll()));
         return sessions.sort((a, b) =>
             String(b.updatedAt).localeCompare(String(a.updatedAt)));
     }
+    // Deletes a game session and all move history associated with it.
     async function deleteGameSession(gameId) {
         return runTransaction(
             [STORES.SESSIONS, STORES.MOVES],
@@ -233,6 +242,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
     }
 
     // Move History
+    // Records a player's move, including its positions, captures, and promotions.
     async function recordMove(move) {
         if (!move || !move.gameId) {
             throw new TypeError('A move record must include gameId.');
@@ -257,22 +267,26 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         await runTransaction(STORES.MOVES, 'readwrite', tx => requestResult(tx.objectStore(STORES.MOVES).add(record)));
         return record;
     }
+    // Retrieves all recorded moves for a game, sorted by move number.
     async function getMovesForGame(gameId) {
         const moves = await runTransaction(STORES.MOVES, 'readonly', tx => requestResult(tx.objectStore(STORES.MOVES).index('gameId').getAll(IDBKeyRange.only(gameId))));
         return moves.sort((a, b) => a.moveNumber - b.moveNumber);
     }
 
     // One local player profile
+    // Validates a username and removes any leading or trailing whitespace.
     function normalizeUsername(username) {
         if (typeof username !== 'string' || !username.trim()) {
             throw new TypeError('Username canot be empty.');
         }
         return username.trim();
     }
+    // Retrieves a player's statistics using their username.
     async function getUserState(username = DEFAULT_USERNAME) {
         username = normalizeUsername(username);
         return runTransaction(STORES.USERS, 'readonly', tx => requestResult(tx.objectStore(STORES.USERS).get(username)));
     }
+    // Saves a player's statistics and calculates their win percentage.
     async function saveUserState(state) {
         if (!state) throw new TypeError('A user state is required.');
 
@@ -295,6 +309,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         await runTransaction(STORES.USERS, 'readwrite', tx => requestResult(tx.objectStore(STORES.USERS).put(record)));
         return record;
     }
+    // Retrieves an existing player profile or creates one with default statistics.
     async function getOrCreateUserState(username = DEFAULT_USERNAME) {
         username = normalizeUsername(username);
         const existing = await getUserState(username);
@@ -311,6 +326,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         await runTransaction(STORES.USERS, 'readwrite', tx => requestResult(tx.objectStore(STORES.USERS).add(initial)));
         return initial;
     }
+    // Updates a player's win/loss record and recalculates their statistics after a completed game
     async function recordGameResult(username, won) {
         username = normalizeUsername(username);
 
@@ -349,6 +365,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
     }
 
     // Application Settings
+    // Retrieves saved application settings or returns the default settings.
     async function getSettings() {
         const saved = await runTransaction(STORES.SETTINGS, 'readonly', tx => requestResult(tx.objectStore(STORES.SETTINGS).get(DEFAULT_SETTINGS_ID)));
         return saved || {
@@ -358,6 +375,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             aiDifficulty: 'easy'
         };
     }
+    // Saves application settings, including the username, opponent mode, and AI difficulty
     async function saveSettings(settings) {
         if (!settings) throw new TypeError('Settings are required.');
 
