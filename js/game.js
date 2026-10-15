@@ -7,12 +7,12 @@
   Object.values(sounds).forEach(audio => { audio.volume = 0.35; });
   sounds.gameOver.volume = 0.25;
   let soundOn = true;
-  try { soundOn = localStorage.getItem('checkers-sound') !== 'off'; } catch (_) {}
+  try { soundOn = localStorage.getItem('checkers-sound') !== 'off'; } catch (_) { }
   document.querySelectorAll('[data-sound-toggle]').forEach(el => el.checked = soundOn);
   let board, current, selected, lastMove = null, legal = [], chain = false, over = false, mode = 'friend', timer = null, generation = 0;
   const name = p => p === 'white' ? 'White' : 'Black';
   const label = (r, c) => 'abcdefgh'[c] + (8 - r);
-  function sound(key) { if (soundOn) { sounds[key].currentTime = 0; sounds[key].play().catch(() => {}); } }
+  function sound(key) { if (soundOn) { sounds[key].currentTime = 0; sounds[key].play().catch(() => { }); } }
   function status(text, win = false) { statusEl.textContent = text; statusEl.classList.toggle('win', win); }
   function log(text) { const el = document.createElement('div'); el.textContent = text; logEl.appendChild(el); logEl.scrollTop = logEl.scrollHeight; }
   function turn() { turnEl.innerHTML = `<span class="swatch ${current}"></span> ${name(current)} to move${mode === 'bot' && current === 'black' ? ' (computer)' : ''}`; }
@@ -117,7 +117,7 @@
   document.querySelectorAll('[data-sound-toggle]').forEach(input => input.addEventListener('change', () => {
     soundOn = input.checked;
     document.querySelectorAll('[data-sound-toggle]').forEach(other => other.checked = soundOn);
-    try { localStorage.setItem('checkers-sound', soundOn ? 'on' : 'off'); } catch (_) {}
+    try { localStorage.setItem('checkers-sound', soundOn ? 'on' : 'off'); } catch (_) { }
     if (soundOn) sound('click');
   }));
   $('startBtn').addEventListener('click', () => { sound('click'); showGame(); });
