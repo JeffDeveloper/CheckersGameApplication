@@ -117,7 +117,7 @@
  * @param {string} [fen] - FEN string to initialize the game position
  * @constructor
  */
-function Draughts (fen) {
+function Draughts(fen) {
   // Game constants
   const BLACK = 'B'
   const WHITE = 'W'
@@ -220,13 +220,13 @@ function Draughts (fen) {
       const color = tokens[k].slice(0, 1)
       const sideString = tokens[k].slice(1)
       if (sideString.length === 0) continue
-      
+
       const numbers = sideString.split(',')
       for (let i = 0; i < numbers.length; i++) {
         let numSquare = numbers[i]
         const isKing = numSquare.slice(0, 1) === 'K'
         numSquare = isKing ? numSquare.slice(1) : numSquare // strip K
-        
+
         const range = numSquare.split('-')
         if (range.length === 2) {
           const from = parseInt(range[0], 10)
@@ -277,7 +277,7 @@ function Draughts (fen) {
     if (fen === 'B::' || fen === 'W::' || fen === '?::') {
       return { valid: true, fen: `${fen}:B:W` }
     }
-    
+
     fen = fen.trim().replace(/\..*$/, '')
 
     if (fen === '') {
@@ -310,13 +310,13 @@ function Draughts (fen) {
     for (let k = 1; k <= 2; k++) {
       const sideString = parts[k].slice(1) // Strip color
       if (sideString.length === 0) continue
-      
+
       const numbers = sideString.split(',')
       for (const numberStr of numbers) {
         let numSquare = numberStr
         const isKing = numSquare.slice(0, 1) === 'K'
         numSquare = isKing ? numSquare.slice(1) : numSquare
-        
+
         const range = numSquare.split('-')
         if (range.length === 2) {
           // Validate range
@@ -353,7 +353,7 @@ function Draughts (fen) {
     const black = []
     const white = []
     const externalPosition = convertPosition(position, 'external')
-    
+
     for (let i = 0; i < externalPosition.length; i++) {
       const piece = externalPosition[i]
       switch (piece) {
@@ -374,7 +374,7 @@ function Draughts (fen) {
           break
       }
     }
-    
+
     return `${turn.toUpperCase()}:W${white.join(',')}:B${black.join(',')}`
   }
 
@@ -493,14 +493,14 @@ function Draughts (fen) {
    */
   const parsePDN = (pdn, options = {}) => {
     const { newline_char = '\r?\n' } = options
-    
+
     /**
      * Escapes special regex characters
      * @param {string} str - String to escape
      * @returns {string} Escaped string
      */
     const mask = (str) => str.replace(/\\/g, '\\')
-    
+
     const regex = new RegExp(`^(\\[(.|${mask(newline_char)})*\\])` +
       `(${mask(newline_char)})*` +
       `1.(${mask(newline_char)}|.)*$`, 'g')
@@ -514,7 +514,7 @@ function Draughts (fen) {
     const parsePDNHeader = (headerStr, _opts) => {
       const headerObj = {}
       const headers = headerStr.split(new RegExp(mask(newline_char)))
-      
+
       for (const headerLine of headers) {
         const key = headerLine.replace(/^\[([A-Z][A-Za-z]*)\s.*\]$/, '$1')
         const value = headerLine.replace(/^\[[A-Za-z]+\s"(.*)"\]$/, '$1')
@@ -557,7 +557,7 @@ function Draughts (fen) {
       .replace(/(\{[^}]+\})+?/g, '') // Remove comments
       .replace(/\d+\./g, '') // Remove move numbers
       .replace(/\.\.\./g, '') // Remove black-to-move indicators
-    
+
     // Remove recursive annotation variations
     const ravRegex = /(\([^\(\)]+\))+?/g
     while (ravRegex.test(moveStr)) {
@@ -590,7 +590,7 @@ function Draughts (fen) {
       }
       makeMove(move)
     }
-    
+
     return true
   }
 
@@ -604,16 +604,16 @@ function Draughts (fen) {
     const matches = move.split(/[x|-]/)
     tempMove.from = parseInt(matches[0], 10)
     tempMove.to = parseInt(matches[1], 10)
-    
+
     const moveTypeMatch = move.match(/[x|-]/)
     if (!moveTypeMatch) return false
-    
+
     const moveType = moveTypeMatch[0]
     tempMove.flags = moveType === '-' ? FLAGS.NORMAL : FLAGS.CAPTURE
     tempMove.piece = position.charAt(convertNumber(tempMove.from, 'internal'))
-    
+
     const legalMoves = convertMoves(getLegalMoves(tempMove.from), 'external')
-    
+
     // Find matching legal move
     for (const legalMove of legalMoves) {
       if (tempMove.to === legalMove.to && tempMove.from === legalMove.from) {
@@ -626,7 +626,7 @@ function Draughts (fen) {
         return tempMove
       }
     }
-    
+
     console.log(legalMoves, tempMove)
     return false
   }
@@ -641,7 +641,7 @@ function Draughts (fen) {
     position = setCharAt(position, convertNumber(move.to, 'internal'), move.piece)
     position = setCharAt(position, convertNumber(move.from, 'internal'), 0)
     move.flags = FLAGS.NORMAL
-    
+
     // Handle captures
     if (move.takes && move.takes.length) {
       move.flags = FLAGS.CAPTURE
@@ -651,16 +651,16 @@ function Draughts (fen) {
         position = setCharAt(position, convertNumber(captureSquare, 'internal'), 0)
       }
     }
-    
+
     // Handle promotions
     const isWhitePromotion = move.to <= 5 && move.piece === 'w'
     const isBlackPromotion = move.to >= 46 && move.piece === 'b'
-    
+
     if (isWhitePromotion || isBlackPromotion) {
       move.flags = FLAGS.PROMOTION
       position = setCharAt(position, convertNumber(move.to, 'internal'), move.piece.toUpperCase())
     }
-    
+
     push(move)
     if (turn === BLACK) {
       moveNumber += 1
@@ -693,7 +693,7 @@ function Draughts (fen) {
     if (outsideBoard(convertNumber(square, 'internal'))) {
       return false
     }
-    
+
     position = setCharAt(position, convertNumber(square, 'internal'), piece)
     update_setup(generate_fen())
     return true
@@ -738,7 +738,7 @@ function Draughts (fen) {
     } else if (flags & BITS.CAPTURE) {
       move.captured = MAN
     }
-    
+
     return move
   }
 
@@ -765,7 +765,7 @@ function Draughts (fen) {
       }
       moves = getMoves()
     }
-    
+
     // Flatten nested arrays
     return moves.flat()
   }
@@ -778,19 +778,19 @@ function Draughts (fen) {
   const getLegalMoves = (index) => {
     let legalMoves = []
     const squareNum = parseInt(index, 10)
-    
+
     if (!Number.isNaN(squareNum)) {
       const internalIndex = convertNumber(squareNum, 'internal')
       const captureState = { position, dirFrom: '' }
       const captureObj = { jumps: [internalIndex], takes: [], piecesTaken: [] }
-      
+
       let captures = capturesAtSquare(internalIndex, captureState, captureObj)
       captures = longestCapture(captures)
-      
+
       // Captures are mandatory if available
       legalMoves = captures.length > 0 ? captures : movesAtSquare(internalIndex)
     }
-    
+
     return convertMoves(legalMoves, 'external')
   }
 
@@ -812,7 +812,7 @@ function Draughts (fen) {
         }
       }
     }
-    
+
     return moves
   }
 
@@ -839,13 +839,13 @@ function Draughts (fen) {
   const movesAtSquare = (square) => {
     const moves = []
     const piece = position.charAt(square)
-    
+
     switch (piece) {
       case 'b':
       case 'w': {
         // Regular pieces (men) can only move one square diagonally
         const dirStrings = directionStrings(position, square, 2)
-        
+
         for (const [dir, str] of Object.entries(dirStrings)) {
           const matchArray = str.match(/^[bw]0/) // piece followed by empty square
           if (matchArray && validDir(piece, dir)) {
@@ -855,12 +855,12 @@ function Draughts (fen) {
         }
         break
       }
-      
+
       case 'W':
       case 'B': {
         // Kings can move multiple squares diagonally
         const dirStrings = directionStrings(position, square, 2)
-        
+
         for (const [dir, str] of Object.entries(dirStrings)) {
           const matchArray = str.match(/^[BW]0+/) // king followed by empty squares
           if (matchArray) {
@@ -873,12 +873,12 @@ function Draughts (fen) {
         }
         break
       }
-      
+
       default:
         // Invalid piece or empty square
         break
     }
-    
+
     return moves
   }
 
@@ -889,7 +889,7 @@ function Draughts (fen) {
   const getCaptures = () => {
     const currentPlayer = turn
     const captures = []
-    
+
     for (let i = 0; i < position.length; i++) {
       const piece = position[i]
       if (piece === currentPlayer || piece === currentPlayer.toLowerCase()) {
@@ -901,14 +901,14 @@ function Draughts (fen) {
           to: '',
           piecesTaken: []
         }
-        
+
         const squareCaptures = capturesAtSquare(i, state, captureObj)
         if (squareCaptures.length) {
           captures.push(...convertMoves(squareCaptures, 'external'))
         }
       }
     }
-    
+
     return longestCapture(captures)
   }
 
@@ -924,19 +924,19 @@ function Draughts (fen) {
     if (!['b', 'w', 'B', 'W'].includes(piece)) {
       return [capture]
     }
-    
+
     // Get direction strings based on piece type
-    const dirString = (piece === 'b' || piece === 'w') 
+    const dirString = (piece === 'b' || piece === 'w')
       ? directionStrings(state.position, posFrom, 3)
       : directionStrings(state.position, posFrom)
-    
+
     let finished = true
     const captureArrayForDir = {}
-    
+
     for (const [dir, str] of Object.entries(dirString)) {
       // Skip the direction we came from
       if (dir === state.dirFrom) continue
-      
+
       switch (piece) {
         case 'b':
         case 'w': {
@@ -945,29 +945,29 @@ function Draughts (fen) {
           if (matchArray) {
             const posTo = posFrom + (2 * STEPS[dir])
             const posTake = posFrom + STEPS[dir]
-            
+
             // Can't capture the same piece twice
             if (capture.takes.includes(posTake)) continue
-            
+
             const updateCapture = { ...clone(capture) }
             updateCapture.to = posTo
             updateCapture.jumps.push(posTo)
             updateCapture.takes.push(posTake)
             updateCapture.piecesTaken.push(position.charAt(posTake))
             updateCapture.from = posFrom
-            
+
             const updateState = { ...clone(state) }
             updateState.dirFrom = oppositeDir(dir)
             const pieceCode = updateState.position.charAt(posFrom)
             updateState.position = setCharAt(updateState.position, posFrom, 0)
             updateState.position = setCharAt(updateState.position, posTo, pieceCode)
-            
+
             finished = false
             captureArrayForDir[dir] = capturesAtSquare(posTo, updateState, updateCapture)
           }
           break
         }
-        
+
         case 'B':
         case 'W': {
           // Kings: look for enemy piece with empty squares after it
@@ -978,10 +978,10 @@ function Draughts (fen) {
             const matchSubstr = matchArraySubstr[0]
             const takeIndex = matchStr.length - matchSubstr.length
             const posTake = posFrom + (takeIndex * STEPS[dir])
-            
+
             // Can't capture the same piece twice
             if (capture.takes.includes(posTake)) continue
-            
+
             // King can land on any empty square after the captured piece
             for (let i = 1; i < matchSubstr.length; i++) {
               const posTo = posFrom + ((takeIndex + i) * STEPS[dir])
@@ -991,13 +991,13 @@ function Draughts (fen) {
               updateCapture.takes.push(posTake)
               updateCapture.piecesTaken.push(position.charAt(posTake))
               updateCapture.posFrom = posFrom
-              
+
               const updateState = { ...clone(state) }
               updateState.dirFrom = oppositeDir(dir)
               const pieceCode = updateState.position.charAt(posFrom)
               updateState.position = setCharAt(updateState.position, posFrom, 0)
               updateState.position = setCharAt(updateState.position, posTo, pieceCode)
-              
+
               finished = false
               const dirIndex = `${dir}${i}`
               captureArrayForDir[dirIndex] = capturesAtSquare(posTo, updateState, updateCapture)
@@ -1005,12 +1005,12 @@ function Draughts (fen) {
           }
           break
         }
-        
+
         default:
           break
       }
     }
-    
+
     // Collect all capture sequences
     let captureArray = []
     if (finished && capture.takes.length) {
@@ -1023,7 +1023,7 @@ function Draughts (fen) {
         captureArray.push(...sequences)
       }
     }
-    
+
     return captureArray
   }
 
@@ -1057,7 +1057,7 @@ function Draughts (fen) {
     // Restore piece to original position
     position = setCharAt(position, convertNumber(move.from, 'internal'), move.piece)
     position = setCharAt(position, convertNumber(move.to, 'internal'), 0)
-    
+
     if (move.flags === 'c') {
       // Restore captured pieces
       for (let i = 0; i < move.captures.length; i++) {
@@ -1075,7 +1075,7 @@ function Draughts (fen) {
       // Demote the piece back to regular piece
       position = setCharAt(position, convertNumber(move.from, 'internal'), move.piece.toLowerCase())
     }
-    
+
     return move
   }
 
@@ -1109,10 +1109,10 @@ function Draughts (fen) {
    */
   const longestCapture = (captures) => {
     if (captures.length === 0) return []
-    
+
     // Find the maximum number of jumps in any capture sequence
     const maxJumpCount = Math.max(...captures.map(capture => capture.jumps.length))
-    
+
     // Must be at least 2 jumps to be a capture (from -> to)
     if (maxJumpCount < 2) {
       return []
@@ -1132,7 +1132,7 @@ function Draughts (fen) {
     if (!type || moves.length === 0) {
       return []
     }
-    
+
     return moves.map(move => ({
       jumps: move.jumps.map(jump => convertNumber(jump, type)),
       takes: move.takes.map(take => convertNumber(take, type)),
@@ -1150,7 +1150,7 @@ function Draughts (fen) {
    */
   const convertNumber = (number, notation) => {
     const num = parseInt(number, 10)
-    
+
     switch (notation) {
       case 'internal':
         return num + Math.floor((num - 1) / 10)
@@ -1177,7 +1177,7 @@ function Draughts (fen) {
         const sub5 = pos.slice(41, 51)
         return `-${sub1}-${sub2}-${sub3}-${sub4}-${sub5}-`
       }
-      
+
       case 'external': {
         const sub1 = pos.slice(1, 11)
         const sub2 = pos.slice(12, 22)
@@ -1186,7 +1186,7 @@ function Draughts (fen) {
         const sub5 = pos.slice(45, 55)
         return `?${sub1}${sub2}${sub3}${sub4}${sub5}`
       }
-      
+
       default:
         return pos
     }
@@ -1215,12 +1215,12 @@ function Draughts (fen) {
     }
 
     const dirStrings = {}
-    
+
     for (const [dir, step] of Object.entries(STEPS)) {
       const dirArray = []
       let i = 0
       let index = square
-      
+
       do {
         dirArray[i] = tempPosition.charAt(index)
         i++
@@ -1266,15 +1266,15 @@ function Draughts (fen) {
     const extPosition = convertPosition(position, 'external')
     let board = '\n+-------------------------------+\n'
     let squareIndex = 1
-    
+
     for (let row = 1; row <= 10; row++) {
       board += '|\t'
-      
+
       // Add leading spaces for odd rows
       if (row % 2 !== 0) {
         board += '  '
       }
-      
+
       for (let col = 1; col <= 10; col++) {
         if (col % 2 === 0) {
           board += '  '
@@ -1284,15 +1284,15 @@ function Draughts (fen) {
           board += unicode ? ` ${UNICODES[piece]}` : ` ${piece}`
         }
       }
-      
+
       // Add trailing spaces for even rows
       if (row % 2 === 0) {
         board += '  '
       }
-      
+
       board += '\t|\n'
     }
-    
+
     return `${board}+-------------------------------+\n`
   }
 
@@ -1365,7 +1365,7 @@ function Draughts (fen) {
     const tempHistory = clone(history)
     const moveHistory = []
     const { verbose = false } = options
-    
+
     while (tempHistory.length > 0) {
       const historyEntry = tempHistory.shift()
       if (verbose) {
@@ -1399,11 +1399,11 @@ function Draughts (fen) {
       moveNumber,
       piece: move.piece
     }
-    
+
     if (move.flags === 'c' && move.captures) {
       prettyMove.captures = move.captures.join(',')
     }
-    
+
     return prettyMove
   }
 
@@ -1474,25 +1474,25 @@ function Draughts (fen) {
       if (typeof moveObj.to === 'undefined' && typeof moveObj.from === 'undefined') {
         return false
       }
-      
+
       const move = {
         to: parseInt(moveObj.to, 10),
         from: parseInt(moveObj.from, 10)
       }
-      
+
       const legalMoves = generate_moves()
-      const matchingMove = legalMoves.find(legalMove => 
+      const matchingMove = legalMoves.find(legalMove =>
         move.to === legalMove.to && move.from === legalMove.from
       )
-      
+
       if (matchingMove) {
         makeMove(matchingMove)
         return matchingMove
       }
-      
+
       return false
     },
-    
+
     undo: () => undoMove() || null,
 
     // Board manipulation
@@ -1505,7 +1505,7 @@ function Draughts (fen) {
     validate_fen,
     fen: generate_fen,
     pdn: generatePDN,
-    load_pdn: (_pdn, _options) => {}, // TODO: Implementation needed
+    load_pdn: (_pdn, _options) => { }, // TODO: Implementation needed
     parsePDN,
     header: (...args) => set_header(args),
 
@@ -1523,7 +1523,7 @@ function Draughts (fen) {
     validDir,
     clone,
     makePretty,
-    
+
     // Performance testing
     perft: (depth) => perft(depth)
   })
