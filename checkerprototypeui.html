@@ -521,12 +521,20 @@
         <hr class="divider">
 
         <div class="field">
-          <label for="opponent">Opponent</label>
-          <select id="opponent">
-            <option value="friend" selected>Friend (pass and play)</option>
-            <option value="bot">Computer (easy)</option>
-          </select>
-        </div>
+            <label for="opponent">Opponent</label>
+            <select id="opponent">
+              <option value="friend" selected>Friend (pass and play)</option>
+              <option value="bot">Computer (easy)</option>
+            </select>
+          </div>
+          <div class="field" id="difficultyField">
+            <label for="difficulty">Difficulty</label>
+            <select id="difficulty">
+              <option value="easy" selected>Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
         <details class="rules settings"><summary>Settings</summary>
           <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
         </details>

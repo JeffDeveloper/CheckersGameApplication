@@ -3,13 +3,13 @@
   const rules = window.CheckersRules, bot = window.CheckersBot;
   const $ = id => document.getElementById(id);
   const boardEl = $('board'), statusEl = $('status'), turnEl = $('turnIndicator'), logEl = $('log');
-  const sounds = { click: new Audio('audio/home-screen-click.wav'), piece: new Audio('audio/click-on-piece.wav'), move: new Audio('audio/checkers-move-click.wav'), king: new Audio('audio/king-crowned.ogg'), gameOver: new Audio('audio/game-over.ogg') };
+  const sounds = { click: new Audio('audio/ui-click.ogg'), move: new Audio('audio/piece-move.ogg'), king: new Audio('audio/king-crowned.ogg'), gameOver: new Audio('audio/game-over.ogg') };
   Object.values(sounds).forEach(audio => { audio.volume = 0.35; });
   sounds.gameOver.volume = 0.25;
   let soundOn = true;
   try { soundOn = localStorage.getItem('checkers-sound') !== 'off'; } catch (_) { }
   document.querySelectorAll('[data-sound-toggle]').forEach(el => el.checked = soundOn);
-  let board, current, selected, lastMove = null, legal = [], chain = false, over = false, mode = 'friend', timer = null, generation = 0;
+  let board, current, selected, lastMove = null, legal = [], chain = false, over = false, mode = 'friend', difficulty = 'easy', timer = null, generation = 0;
   const name = p => p === 'white' ? 'White' : 'Black';
   const label = (r, c) => 'abcdefgh'[c] + (8 - r);
   function sound(key) { if (soundOn) { sounds[key].currentTime = 0; sounds[key].play().catch(() => { }); } }
@@ -39,8 +39,6 @@
       over = true; status(`${name(winner)} wins! ${name(current)} has no legal moves.`, true);
       turnEl.innerHTML = `<span class="swatch ${winner}"></span> Game over`;
       log(`Game over: ${name(winner)} wins`);
-      // Save White's completed-game record.
-      window.CheckersDB.recordGameResult('Player', winner === 'white').catch(error => console.warn('Game history could not be saved.', error));
       showResult(winner, current);
     } else if (mode === 'bot' && current === 'black') { status('Computer is thinking…'); scheduleBot(); }
     else status('Select a piece to see its legal moves.');
@@ -59,12 +57,13 @@
     }
     finishTurn();
   }
-  function scheduleBot() {
+ function scheduleBot() {
     const ticket = generation;
     timer = setTimeout(() => {
       timer = null;
       if (ticket !== generation || over || current !== 'black' || mode !== 'bot' || $('gameScreen').classList.contains('hidden')) return;
-      const move = bot.chooseMove(board, chain ? legal : rules.legalMoves(board, 'black'));
+      // Pass the current difficulty setting to the bot
+      const move = bot.chooseMove(board, chain ? legal : rules.legalMoves(board, 'black'), difficulty);
       if (move) apply(move);
     }, 450);
   }
@@ -76,7 +75,7 @@
     legal = rules.legalMoves(board, current).filter(m => m.from[0] === r && m.from[1] === c);
     selected = legal.length ? [r, c] : null;
     status(legal.length ? `${legal.length} legal move${legal.length === 1 ? '' : 's'} highlighted.` : 'That piece cannot move now — a capture may be required elsewhere.');
-    sound('piece'); render();
+    sound('click'); render();
   }
   function render() {
     const frag = document.createDocumentFragment();
@@ -112,36 +111,23 @@
     try { history.replaceState(null, '', playing ? '#play' : location.href.split('#')[0]); }
     catch (_) { location.hash = playing ? 'play' : ''; }
   }
-  // Read the existing local player record.
-  async function loadHistory() {
-    try {
-      const state = await window.CheckersDB.getOrCreateUserState('Player');
-      $('historyRecord').textContent = `Wins: ${state.totalWins} · Losses: ${state.totalLosses}`;
-      $('historyOutcome').textContent = `Previous game: ${state.lastOutcome === 'win' ? 'White won' : state.lastOutcome === 'loss' ? 'White lost' : 'None yet'}`;
-      $('historyPercentage').textContent = `Win percentage: ${state.winPercentage}%`;
-    } catch (error) {
-      $('historyRecord').textContent = 'Game history unavailable.';
-      $('historyOutcome').textContent = '';
-      $('historyPercentage').textContent = '';
-      console.warn('Game history could not be loaded.', error);
-    }
-  }
   function showGame() { $('menuScreen').classList.add('hidden'); $('gameScreen').classList.remove('hidden'); newGame(); setPageHash(true); }
-  function showMenu() { stopBot(); sounds.gameOver.pause(); sounds.gameOver.currentTime = 0; $('resultOverlay').classList.add('hidden'); $('gameScreen').classList.add('hidden'); $('menuScreen').classList.remove('hidden'); setPageHash(false); if (!$('historyPanel').classList.contains('hidden')) loadHistory(); $('startBtn').focus(); }
+  function showMenu() { stopBot(); sounds.gameOver.pause(); sounds.gameOver.currentTime = 0; $('resultOverlay').classList.add('hidden'); $('gameScreen').classList.add('hidden'); $('menuScreen').classList.remove('hidden'); setPageHash(false); $('startBtn').focus(); }
   document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => { setMode(btn.dataset.mode); sound('click'); }));
-  $('opponent').addEventListener('change', () => { setMode($('opponent').value); sound('click'); newGame(); });
+  $('opponent').addEventListener('change', () => { setMode($('opponent').value);const difficultyEl = $('difficulty');
+  if (difficultyEl) {
+    difficultyEl.addEventListener('change', () => {
+      difficulty = difficultyEl.value;
+      sound('click');
+      newGame();
+    });
+  } sound('click'); newGame(); });
   document.querySelectorAll('[data-sound-toggle]').forEach(input => input.addEventListener('change', () => {
     soundOn = input.checked;
     document.querySelectorAll('[data-sound-toggle]').forEach(other => other.checked = soundOn);
     try { localStorage.setItem('checkers-sound', soundOn ? 'on' : 'off'); } catch (_) { }
     if (soundOn) sound('click');
   }));
-  $('historyButton').addEventListener('click', () => {
-    sound('click');
-    const open = $('historyPanel').classList.toggle('hidden') === false;
-    $('historyButton').setAttribute('aria-expanded', String(open));
-    if (open) loadHistory();
-  });
   $('startBtn').addEventListener('click', () => { sound('click'); showGame(); });
   $('newGameBtn').addEventListener('click', () => { sound('click'); newGame(); });
   $('rematchBtn').addEventListener('click', () => { sound('click'); newGame(); });
