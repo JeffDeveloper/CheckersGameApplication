@@ -353,7 +353,8 @@ AppSettings | settingsId | opponentMode, aiDifficulty
                         totalWins,
                         totalLosses,
                         totalGames,
-                        winPercentage: Number(((totalWins / totalGames) * 100).toFixed(2))
+                        winPercentage: Number(((totalWins / totalGames) * 100).toFixed(2)),
+                        lastOutcome: won ? 'win' : 'loss'
                     };
                     const putRequest = store.put(updated);
                     putRequest.onsuccess = () => resolve(updated);

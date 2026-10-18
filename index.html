@@ -661,6 +661,43 @@
       margin-top: 0;
     }
 
+    .menu-tools {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .history-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--brass);
+      font: 600 0.78rem 'Inter', sans-serif;
+      cursor: pointer;
+    }
+
+    .history-toggle:focus-visible {
+      outline: 3px solid #75cfff;
+      outline-offset: 3px;
+    }
+
+    .history-panel {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--bg);
+      font-size: 0.82rem;
+    }
+
+    .history-panel p {
+      margin: 6px 0;
+    }
+
     .sound-setting {
       display: flex;
       align-items: center;
@@ -719,10 +756,22 @@
 
           <button class="btn primary" id="startBtn">Start game</button>
           <p class="start-note">No account needed · Play in your browser</p>
-          <details class="rules settings">
-            <summary>Settings</summary>
-            <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
-          </details>
+          <div class="menu-tools">
+            <details class="rules settings">
+              <summary>Settings</summary>
+              <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+            </details>
+            <button type="button" class="history-toggle" id="historyButton" aria-controls="historyPanel" aria-expanded="false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 2 5-6"/></svg>
+              Game History
+            </button>
+          </div>
+          <div class="history-panel hidden" id="historyPanel" aria-live="polite">
+            <strong>User's record</strong>
+            <p id="historyRecord">Wins: 0 · Losses: 0</p>
+            <p id="historyOutcome">Previous game: None yet</p>
+            <p id="historyPercentage">Win percentage: 0%</p>
+          </div>
 
         </div>
       </div>
