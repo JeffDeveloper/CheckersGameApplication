@@ -1,16 +1,44 @@
 # Checkers Web Application
-Temporary Readme, but here are a few things to keep in mind when contributing.
 
-### Pull requests
-Please open a pull request when you have changes ready. Give a quick rundown of what you changed and how you tested it. Keep each PR focused so it’s easy to review.
+Web-based Checkers game built using HTML, CSS, and JavaScript. Attached are the instructions to run the game application locally.
 
-### Working with Git
-Please use Git to commit and push your changes instead of uploading files directly to the repo. Work on your own branch, then open a PR when you’re ready. We need to keep good documentation.
+### Requirements
+
+Before running, you will need to have:
+
+A modern web browser (Safari, Edge, Chrome, Firefox, etc.).
+A code editor such as Microsoft Visual Studio Code (Optional).
+Git installed (if cloning the repository).
+
+### How to Run the Game Application
+
+Firstly, you can clone the repository to your local machine using Git.
 
 ```bash
-git switch -c your-branch-name
-# Make your changes
-git add <files-you-changed>
-git commit -m "Briefly describe your changes"
-git push -u origin your-branch-name
+git clone <repository-url>
+cd <repository-folder>
 ```
+Once downloaded, you can simply open the project folder. 
+
+### Running the Game 
+
+Since this game already uses HTML, CSS, and JavaScript, no additional dependencies or other installations are required.
+
+1. Find the project folder.
+2. Locate the index.html file.
+3. Double-click index.html to open in your default browser.
+4. The Checkers game should load and be ready to play.
+
+### Optional (Running Live Server)
+
+If you are using Visual Studio Code (VS Code), you can also run the application using a Live Server extension. 
+
+1. Open the project folder in VS Code.
+2. Install or activate the Live Server extension in the folder.
+3. Right-click index.html and select Open with Live Server.
+4. The application will open in your default browser.
+
+### Technologies Used
+HTML - Structures of the game and all elements.
+CSS - Handles layout and styling choices.
+JavaScript - Controls the game’s logic and players’ interactions. 
