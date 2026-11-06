@@ -21,7 +21,7 @@
     --white-piece-edge: #34424f;
     --black-piece: #10151b;
     --black-piece-edge: #e7edf3;
-    --danger: #ff6b5f;
+    --danger: #ff9c92;
   }
 
   * { box-sizing: border-box; }
@@ -83,11 +83,23 @@
   }
 
   .board-wrap {
-    background: linear-gradient(160deg, #3a4651, #1e2831);
-    padding: 16px;
-    border-radius: 6px;
-    box-shadow: 0 18px 40px -20px rgba(20,30,40,0.55);
+    width: 100%;
   }
+  .board-instructions { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .screen-reader-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .material-scores { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: var(--ink); font-size: 1rem; }
+  .material-side { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: var(--ink); font-weight: 600; }
+  .material-scores strong { font-size: inherit; font-weight: 600; }
+  .captured { display: inline-flex; align-items: center; }
+  .captured-stack { display: inline-block; position: relative; width: 18px; height: 20px; flex: none; }
+  .captured-stack::before, .captured-stack::after { content: ""; position: absolute; left: 1px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid; }
+  .captured-stack::before { top: 4px; }
+  .captured-stack::after { top: 0; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.12); }
+  .captured-stack.black::before { background: #10151b; border-color: #34424f; }
+  .captured-stack.black::after { background: #303943; border-color: #10151b; }
+  .captured-stack.white::before { background: #d9e0e7; border-color: #34424f; }
+  .captured-stack.white::after { background: #fff; border-color: #34424f; }
+  select:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #1768b6; outline-offset: 3px; }
 
   .board {
     display: grid;
@@ -95,7 +107,7 @@
     grid-template-rows: repeat(8, 1fr);
     aspect-ratio: 1 / 1;
     width: 100%;
-    border: 3px solid #17212a;
+    border: 0;
     border-radius: 2px;
     overflow: hidden;
   }
@@ -113,7 +125,7 @@
   .sq.dark  { background: var(--dark-sq); }
 
   .sq.playable { cursor: pointer; }
-  .sq:focus-visible { outline: 4px solid #80e8ff; outline-offset: -4px; z-index: 1; }
+  .sq:focus-visible { outline: 4px solid #fff; outline-offset: -4px; box-shadow: inset 0 0 0 7px #10151b; z-index: 1; }
   .sq.last-from { box-shadow: inset 0 0 0 5px #a6dbff; }
   .sq.last-to { box-shadow: inset 0 0 0 6px #ffd452; }
 
@@ -126,6 +138,9 @@
     z-index: 2;
     pointer-events: none;
   }
+  .sq.marked::after { content: ""; position: absolute; inset: 0; background: rgba(220, 38, 38, 0.42); pointer-events: none; z-index: 1; }
+  .sq.marked.dark::after { box-shadow: inset 0 0 0 4px #ff9c92; }
+  .sq.marked.light::after { box-shadow: inset 0 0 0 4px #a50016; }
 
   .sq .dot {
     width: 32%;
@@ -143,6 +158,7 @@
   }
 
   .piece {
+    touch-action: none;
     width: 76%;
     height: 76%;
     border-radius: 50%;
@@ -169,6 +185,21 @@
   .piece.black.king::after { color: #8ce0ff; }
 
   .sq.playable:hover .piece { transform: scale(1.06); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+  @media (forced-colors: active) {
+    .sq.light { background: Canvas; border: 1px solid CanvasText; }
+    .sq.dark { background: CanvasText; border: 1px solid Canvas; }
+    .piece.white { background: Canvas; border-color: CanvasText; }
+    .piece.black { background: CanvasText; border-color: Canvas; outline: 1px solid CanvasText; }
+    .sq .dot { background: Highlight; box-shadow: none; }
+    .sq .dot.capture { background: transparent; border-color: Highlight; }
+    .sq.selected::before, .sq.marked::after { border-color: Highlight; }
+    .sq.marked::after { background: transparent; border: 4px solid Highlight; }
+    .sq.marked.dark::after, .sq.marked.light::after { box-shadow: none; }
+  }
+  .sq.dragging .piece { opacity: 0.35; }
+  .sq.drop-target { box-shadow: inset 0 0 0 5px #85eaff; }
+  .drag-ghost { position: fixed; z-index: 30; width: 54px; height: 54px; pointer-events: none; transform: translate(-50%, -50%); }
 
   /* side panel */
   .panel {
@@ -393,6 +424,7 @@
   @media (max-width: 620px) {
     .menu-content { padding: 26px 24px; }
   }
+  @media (max-width: 420px) { .segmented { flex-direction: column; } }
 
   .segmented {
     display: flex;
@@ -420,7 +452,7 @@
   .seg small { font-size: 0.72rem; line-height: 1.35; }
   .seg.active { background: #eaf5ff; border-color: var(--brass); color: #285075; box-shadow: 0 0 0 2px rgba(23,104,182,0.12); }
   .seg.active strong { color: #174f83; }
-  .seg:focus-visible, .btn:focus-visible { outline: 3px solid #75cfff; outline-offset: 2px; }
+  .seg:focus-visible, .btn:focus-visible { outline: 3px solid #0b3f6d; outline-offset: 2px; }
   .seg:disabled { cursor: not-allowed; color: #b7a98f; }
   .seg .soon {
     font-size: 0.62rem;
@@ -436,6 +468,8 @@
     width: 100%;
     padding: 12px 20px;
   }
+  .menu-content #continueBtn { margin-top: 10px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .start-note { margin: 9px 0 0; text-align: center; color: var(--ink-soft); font-size: 0.73rem; }
 
   .result-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(10,18,26,0.72); }
@@ -449,10 +483,13 @@
 
   .rules { margin-top: 18px; }
   .settings { margin-top: 0; }
-  .sound-setting { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .82rem; color: var(--ink); cursor: pointer; }
+  .sound-setting { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .82rem; color: var(--ink); cursor: pointer; min-height: 28px; }
   .sound-setting input { accent-color: var(--brass); }
   .rules summary {
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    min-height: 28px;
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--brass);
@@ -463,7 +500,7 @@
 </head>
 <body>
 
-<div class="app">
+<main class="app">
 
   <!-- MAIN MENU -->
   <div class="menu-screen" id="menuScreen">
@@ -488,9 +525,12 @@
         </div>
 
         <button class="btn primary" id="startBtn">Start game</button>
-        <p class="start-note">No account needed · Play in your browser</p>
+        <!-- Adds continue button -->
+        <button class="btn ghost" id="continueBtn" disabled>Continue</button>
         <details class="rules settings"><summary>Settings</summary>
           <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+          <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
+          <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
         </details>
 
       </div>
@@ -499,23 +539,31 @@
 
   <!-- GAME SCREEN -->
   <div class="game-screen hidden" id="gameScreen">
-    <header>
+    <header id="gameHeader">
       <div>
-        <h1>Checkers</h1>
+        <h1 id="gameTitle" tabindex="-1">Checkers</h1>
         <p></p>
       </div>
     </header>
 
-    <div class="layout">
-      <div class="board-wrap">
-        <div class="board" id="board"></div>
+    <div class="layout" id="gameContent">
+      <div class="board-column">
+        <div class="board-wrap">
+          <div class="board" id="board" role="group" aria-label="Checkers board" aria-describedby="boardInstructions"></div>
+        </div>
+        <div class="material-scores" role="status" aria-live="polite" aria-label="Pieces captured">
+          <span class="material-side">White <span class="captured hidden" id="whiteCaptured" aria-hidden="true"><span class="captured-stack black"></span></span><strong id="whiteScore">0</strong></span>
+          <span class="material-side">Black <span class="captured hidden" id="blackCaptured" aria-hidden="true"><span class="captured-stack white"></span></span><strong id="blackScore">0</strong></span>
+        </div>
+        <p class="board-instructions" id="boardInstructions">Use arrow keys to navigate squares. Press Enter or Space to select a piece and its destination. Press M to toggle a red mark when red markings are enabled. You can also click or drag pieces.</p>
+        <p class="screen-reader-only" id="markStatus" role="status" aria-live="polite"></p>
       </div>
 
       <div class="panel">
-        <div class="turn-indicator" id="turnIndicator">
+        <div class="turn-indicator" id="turnIndicator" aria-live="polite">
           <span class="swatch white"></span> White to move
         </div>
-        <div class="status" id="status" aria-live="polite">Select a piece to see its legal moves.</div>
+        <div class="status" id="status" role="status" aria-live="polite">Select a piece to see its legal moves.</div>
         <p class="move-legend">Blue ring: selected piece · Cyan dot: legal move · Yellow ring: last move</p>
 
         <hr class="divider">
@@ -537,6 +585,8 @@
           </div>
         <details class="rules settings"><summary>Settings</summary>
           <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+          <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
+          <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
         </details>
 
         <button class="btn primary" id="newGameBtn">New game</button>
@@ -547,10 +597,10 @@
 
         <div>
           <p class="log-title">Move history</p>
-          <div class="log" id="log"></div>
+          <div class="log" id="log" role="log" aria-label="Move history" aria-live="off"></div>
         </div>
 
-        <p class="note">8×8 checkers with forced captures and chain jumps. White moves first.</p>
+        <p class="note">8×8 checkers with forced captures and chain jumps. White moves first. Keyboard: arrow keys navigate squares, Enter or Space selects, and M marks a square when red markings are enabled.</p>
       </div>
     </div>
     <div class="result-overlay hidden" id="resultOverlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-describedby="resultReason">
@@ -566,10 +616,11 @@
       </div>
     </div>
   </div>
-</div>
+</main>
 
 <script src="js/logic/draughtAdapter.js"></script>
 <script src="js/bot/bot.js"></script>
+<script src="js/database.js"></script>
 <script src="js/game.js"></script>
 
 </body>
