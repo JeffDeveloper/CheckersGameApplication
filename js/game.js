@@ -16,10 +16,12 @@
   } catch (_) { }
   document.querySelectorAll('[data-drag-toggle]').forEach(el => el.checked = dragOn);
   document.querySelectorAll('[data-marks-toggle]').forEach(el => el.checked = marksOn);
-  let board, current, selected, lastMove = null, legal = [], chain = false, over = false, mode = 'friend', difficulty = 'easy', timer = null, generation = 0;
+  let board, current, selected, lastMove = null, legal = [], chain = false, over = false, mode = 'friend', difficulty = 'easy', timer = null, generation = 0, gameId = null, moveNumber = 0;
   let markedSquares = new Set();
   let startingCounts = { white: 12, black: 12 }, focusSquare = [5, 0];
   const saveKey = 'checkers-active-game';
+  let sessionSavePromise = Promise.resolve();
+  let moveSavePromise = Promise.resolve();
   // Reads saved game
   function readSave() {
     try {
@@ -36,9 +38,11 @@
   function updateContinue() { $('continueBtn').disabled = !readSave(); }
   function saveGame() {
     try {
-      localStorage.setItem(saveKey, JSON.stringify({ board, current, mode, difficulty,
+      localStorage.setItem(saveKey, JSON.stringify({
+        board, current, mode, difficulty, gameId, moveNumber,
         lastMove, selected: chain ? selected : null, chain, moves: Array.from(logEl.children, el => el.textContent),
-        markedSquares: [...markedSquares], startingCounts }));
+        markedSquares: [...markedSquares], startingCounts
+      }));
     } catch (error) { console.warn('Game could not be saved.', error); }
     updateContinue();
   }
@@ -68,13 +72,56 @@
       $(`${player}Captured`).classList.toggle('hidden', count === 0);
     }
   }
+
+  // Helper function 
+  async function updateGameSession() {
+    if (!gameId) return;
+
+    try {
+      await moveSavePromise;
+      const session = await window.CheckersDB.getGameSession(gameId);
+
+      if (!session) {
+        console.warn('Game session could not be found.');
+        return;
+      }
+      session.boardState = board;
+      session.currentTurn = current;
+      session.opponentMode = mode;
+      session.gameStatus = over ? 'completed' : 'inProgress';
+
+      await window.CheckersDB.saveGameSession(session);
+    } catch (error) {
+      console.warn('Game session could not be updated.', error);
+    }
+  }
+
   function newGame() {
     stopBot(); board = rules.initialBoard(); current = 'white'; selected = null; lastMove = null; legal = []; chain = over = false;
     markedSquares.clear(); startingCounts = countPieces(); focusSquare = [5, 0];
     sounds.gameOver.pause(); sounds.gameOver.currentTime = 0;
     $('resultOverlay').classList.add('hidden');
     $('gameHeader').inert = false; $('gameContent').inert = false;
-    logEl.replaceChildren(); status('Select a piece to see its legal moves.'); turn(); render(); saveGame();
+    logEl.replaceChildren(); status('Select a piece to see its legal moves.'); turn(); render();
+    
+    // Creates a game session and unique game ID to record into the DB
+    const session = window.CheckersDB.createGameSession({
+      boardState: board,
+      currentTurn: current,
+      opponentMode: mode,
+      gameStatus: 'inProgress'
+    });
+
+    gameId = session.gameId;
+    moveNumber = 0;
+    moveSavePromise = Promise.resolve();
+
+    sessionSavePromise = window.CheckersDB.saveGameSession(session).catch(error => {
+      console.warn('Game session could not be saved.', error);
+      throw error;
+    });
+    saveGame();
+
   }
   function showResult(winner, loser) {
     sounds.move.pause(); sounds.jump.pause(); sounds.king.pause();
@@ -100,10 +147,25 @@
     else status('Select a piece to see its legal moves.');
     render();
     if (!over) saveGame();
+    updateGameSession();
   }
+
   function apply(move) {
     const player = current, result = rules.applyMove(board, move);
     lastMove = move;
+    const currentMoveNumber = ++moveNumber;
+
+    // Waits for moveSavePromise and sessionSavePromise to resolve, then records the current move in DB, resolving the promise for next queued move to proceed.
+    moveSavePromise = moveSavePromise.then(() => sessionSavePromise).then(() => window.CheckersDB.recordMove({
+      gameId,
+      moveNumber: currentMoveNumber,
+      player,
+      startPosition: move.from,
+      endPosition: move.to,
+      isCapture: move.capture,
+      isPromotion: result.promoted
+    })).catch(error => console.warn('Move could not be saved.', error));
+
     log(`${name(player)}: ${label(...move.from)} → ${label(...move.to)}${move.capture ? ' (capture)' : ''}${result.promoted ? ' — crowned' : ''}`);
     if (move.capture) sound('jump');
     if (result.promoted) sound('king');
@@ -116,7 +178,9 @@
     }
     finishTurn();
   }
- function scheduleBot() {
+
+
+  function scheduleBot() {
     const ticket = generation;
     timer = setTimeout(() => {
       timer = null;
@@ -126,6 +190,7 @@
       if (move) apply(move);
     }, 450);
   }
+
   function clickSquare(r, c) {
     if (over || (mode === 'bot' && current === 'black')) return;
     focusSquare = [r, c];
@@ -137,6 +202,7 @@
     status(legal.length ? `${legal.length} legal move${legal.length === 1 ? '' : 's'} highlighted.` : 'That piece cannot move now — a capture may be required elsewhere.');
     sound('piece'); render();
   }
+
   let drag = null, suppressClick = false;
   function dragStart(event) {
     if (!dragOn || event.button !== 0) return;
@@ -149,9 +215,12 @@
     const moves = (chain ? legal : rules.legalMoves(board, current))
       .filter(move => move.from[0] === from[0] && move.from[1] === from[1]);
     if (!moves.length) return;
-    drag = { from, moves, square, x: event.clientX, y: event.clientY,
-      pointerId: event.pointerId, ghost: null };
+    drag = {
+      from, moves, square, x: event.clientX, y: event.clientY,
+      pointerId: event.pointerId, ghost: null
+    };
   }
+
   function dragMove(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     if (!drag.ghost && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
@@ -166,6 +235,7 @@
     drag.ghost.style.left = `${event.clientX}px`;
     drag.ghost.style.top = `${event.clientY}px`;
   }
+
   function dragEnd(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     const active = drag;
@@ -182,6 +252,7 @@
     if (move) apply(move);
     else status('Drop the piece on a highlighted square.');
   }
+
   boardEl.addEventListener('pointerdown', dragStart);
   function toggleMark(square) {
     if (!marksOn || !square) return;
@@ -193,10 +264,12 @@
     $('markStatus').textContent = `${label(Number(square.dataset.row), Number(square.dataset.col))} ${markedSquares.has(key) ? 'marked red' : 'red mark removed'}.`;
     if (board && !over) saveGame();
   }
+
   boardEl.addEventListener('contextmenu', event => {
     event.preventDefault();
     toggleMark(event.target.closest('.sq'));
   });
+
   boardEl.addEventListener('keydown', event => {
     const square = event.target.closest('.sq');
     if (!square) return;
@@ -215,6 +288,7 @@
       event.preventDefault(); toggleMark(square);
     }
   });
+
   window.addEventListener('pointermove', dragMove);
   window.addEventListener('pointerup', dragEnd);
   window.addEventListener('pointercancel', dragEnd);
@@ -223,6 +297,7 @@
     const destination = legal.find(move => move.to[0] === r && move.to[1] === c);
     return `${label(r, c)}, ${piece ? `${name(piece.player)} ${piece.king ? 'king' : 'piece'}` : 'empty'}${destination ? destination.capture ? ', legal capture destination' : ', legal destination' : ''}${selected?.[0] === r && selected[1] === c ? ', selected' : ''}${lastMove?.from[0] === r && lastMove.from[1] === c ? ', last move from here' : ''}${lastMove?.to[0] === r && lastMove.to[1] === c ? ', last move to here' : ''}${markedSquares.has(`${r},${c}`) && marksOn ? ', marked red' : ''}`;
   }
+
   function render() {
     const focused = document.activeElement;
     const restoreFocus = focused?.parentElement === boardEl && focused.dataset?.row !== undefined;
@@ -250,6 +325,7 @@
     updateCaptureScores();
     if (restoreFocus) boardEl.children[focusSquare[0] * 8 + focusSquare[1]].focus({ preventScroll: true });
   }
+
   function menuArt() {
     const start = rules.initialBoard();
     for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
@@ -258,14 +334,17 @@
       $('artBoard').appendChild(cell);
     }
   }
+
   function setMode(next) {
     mode = next; $('opponent').value = next;
     document.querySelectorAll('[data-mode]').forEach(btn => { btn.classList.toggle('active', btn.dataset.mode === next); btn.setAttribute('aria-pressed', String(btn.dataset.mode === next)); });
   }
+
   function setPageHash(playing) {
     try { history.replaceState(null, '', playing ? '#play' : location.href.split('#')[0]); }
     catch (_) { location.hash = playing ? 'play' : ''; }
   }
+
   // Load Saved Game History
   async function loadHistory() {
     try {
@@ -280,13 +359,19 @@
       console.warn('Game history could not be loaded.', error);
     }
   }
+
   function showGame() { $('menuScreen').classList.add('hidden'); $('gameScreen').classList.remove('hidden'); newGame(); setPageHash(true); $('gameTitle').focus(); }
   // Restores saved game
   function continueGame() {
     const saved = readSave();
     if (!saved) { updateContinue(); return; }
     stopBot();
-    board = saved.board; current = saved.current; selected = saved.chain ? saved.selected : null;
+    board = saved.board;
+    current = saved.current;
+    selected = saved.chain ? saved.selected : null;
+    gameId = saved.gameId ?? null;
+    moveNumber = saved.moveNumber ?? 0;
+    sessionSavePromise = Promise.resolve();
     lastMove = saved.lastMove; chain = !!saved.chain; over = false;
     markedSquares = new Set(Array.isArray(saved.markedSquares) ? saved.markedSquares.filter(key => /^[0-7],[0-7]$/.test(key)) : []);
     startingCounts = saved.startingCounts && Number.isInteger(saved.startingCounts.white) && Number.isInteger(saved.startingCounts.black)
