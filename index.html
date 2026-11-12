@@ -24,7 +24,7 @@
       --white-piece-edge: #34424f;
       --black-piece: #10151b;
       --black-piece-edge: #e7edf3;
-      --danger: #ff6b5f;
+      --danger: #ff9c92;
     }
 
     * {
@@ -90,11 +90,23 @@
     }
 
     .board-wrap {
-      background: linear-gradient(160deg, #3a4651, #1e2831);
-      padding: 16px;
-      border-radius: 6px;
-      box-shadow: 0 18px 40px -20px rgba(20, 30, 40, 0.55);
+      width: 100%;
     }
+
+    .board-instructions { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .screen-reader-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .material-scores { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: var(--ink); font-size: 1rem; }
+    .material-side { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: var(--ink); font-weight: 600; }
+    .material-scores strong { font-size: inherit; font-weight: 600; }
+    .captured { display: inline-flex; align-items: center; }
+    .captured-stack { display: inline-block; position: relative; width: 18px; height: 20px; flex: none; }
+    .captured-stack::before, .captured-stack::after { content: ""; position: absolute; left: 1px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid; }
+    .captured-stack::before { top: 4px; }
+    .captured-stack::after { top: 0; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.12); }
+    .captured-stack.black::before { background: #10151b; border-color: #34424f; }
+    .captured-stack.black::after { background: #303943; border-color: #10151b; }
+    .captured-stack.white::before { background: #d9e0e7; border-color: #34424f; }
+    .captured-stack.white::after { background: #fff; border-color: #34424f; }
 
     .board {
       display: grid;
@@ -102,7 +114,7 @@
       grid-template-rows: repeat(8, 1fr);
       aspect-ratio: 1 / 1;
       width: 100%;
-      border: 3px solid #17212a;
+      border: 0;
       border-radius: 2px;
       overflow: hidden;
     }
@@ -130,9 +142,15 @@
     }
 
     .sq:focus-visible {
-      outline: 4px solid #80e8ff;
+      outline: 4px solid #fff;
       outline-offset: -4px;
+      box-shadow: inset 0 0 0 7px #10151b;
       z-index: 1;
+    }
+
+    select:focus-visible, input:focus-visible, summary:focus-visible, .history-toggle:focus-visible {
+      outline: 3px solid #1768b6;
+      outline-offset: 3px;
     }
 
     .sq.last-from {
@@ -153,6 +171,17 @@
       pointer-events: none;
     }
 
+    .sq.marked::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 38, 38, 0.42);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .sq.marked.dark::after { box-shadow: inset 0 0 0 4px #ff9c92; }
+    .sq.marked.light::after { box-shadow: inset 0 0 0 4px #a50016; }
+
     .sq .dot {
       width: 32%;
       height: 32%;
@@ -170,6 +199,7 @@
     }
 
     .piece {
+      touch-action: none;
       width: 76%;
       height: 76%;
       border-radius: 50%;
@@ -205,6 +235,33 @@
       transform: scale(1.06);
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+
+    @media (forced-colors: active) {
+      .sq.light { background: Canvas; border: 1px solid CanvasText; }
+      .sq.dark { background: CanvasText; border: 1px solid Canvas; }
+      .piece.white { background: Canvas; border-color: CanvasText; }
+      .piece.black { background: CanvasText; border-color: Canvas; outline: 1px solid CanvasText; }
+      .sq .dot { background: Highlight; box-shadow: none; }
+      .sq .dot.capture { background: transparent; border-color: Highlight; }
+      .sq.selected::before, .sq.marked::after { border-color: Highlight; }
+      .sq.marked::after { background: transparent; border: 4px solid Highlight; }
+      .sq.marked.dark::after, .sq.marked.light::after { box-shadow: none; }
+    }
+
+    .sq.dragging .piece { opacity: 0.35; }
+    .sq.drop-target { box-shadow: inset 0 0 0 5px #85eaff; }
+    .drag-ghost {
+      position: fixed;
+      z-index: 30;
+      width: 54px;
+      height: 54px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
     /* side panel */
     .panel {
       background: var(--panel);
@@ -213,7 +270,7 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 18px;
     }
 
     .turn-indicator {
@@ -253,79 +310,11 @@
       font-weight: 600;
     }
 
-    /* board column: board + history + key */
-    .board-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-width: 0;
-    }
-
-    .turn-banner {
-      background: #eef5fc;
-      border: 1px solid #cfe0f2;
-      border-radius: 8px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .turn-banner .status {
-      min-height: 0;
-    }
-
-    .btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .btn-row .btn {
-      padding: 10px 6px;
-      white-space: nowrap;
-    }
-
-    .legend {
-      list-style: none;
-      margin: 0;
-      padding: 0 4px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 18px;
-      font-size: 0.75rem;
+    .move-legend {
+      font-size: 0.76rem;
       color: var(--ink-soft);
-    }
-
-    .legend li {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .key {
-      width: 18px;
-      height: 18px;
-      border-radius: 3px;
-      background: var(--dark-sq);
-      position: relative;
-      flex: none;
-    }
-
-    .key-select {
-      box-shadow: inset 0 0 0 3px #7ae7ff;
-    }
-
-    .key-last {
-      box-shadow: inset 0 0 0 3px #ffd452;
-    }
-
-    .key-move::after {
-      content: "";
-      position: absolute;
-      inset: 5px;
-      border-radius: 50%;
-      background: #85eaff;
+      line-height: 1.5;
+      margin: -10px 0 0;
     }
 
     .divider {
@@ -385,63 +374,29 @@
       color: var(--ink);
     }
 
-    .history-card {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 14px 16px;
-    }
-
     .log-title {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--ink);
-      margin: 0 0 8px;
+      font-size: 0.75rem;
+      color: var(--ink-soft);
+      margin: 0 0 4px;
     }
 
     .log {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-height: 3.2em;
-      max-height: 150px;
+      max-height: 160px;
       overflow-y: auto;
       font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       padding-right: 4px;
     }
 
     .log div {
       color: var(--ink-soft);
-      padding: 4px 8px;
-      border-radius: 5px;
     }
 
     .log div:last-child {
       color: var(--ink);
-      font-weight: 600;
-      background: #fff8dc;
-    }
-
-    /* colored dot per move, tagged by the script below */
-    .log .log-white::before,
-    .log .log-black::before {
-      content: "";
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      margin-right: 8px;
-      border-radius: 50%;
-      vertical-align: -1px;
-    }
-
-    .log .log-white::before {
-      background: var(--white-piece);
-      border: 1.5px solid var(--white-piece-edge);
-    }
-
-    .log .log-black::before {
-      background: var(--black-piece);
-      border: 1.5px solid var(--black-piece-edge);
+      font-weight: 500;
     }
 
     .log::-webkit-scrollbar {
@@ -463,73 +418,6 @@
 
     .hidden {
       display: none !important;
-    }
-
-    /* player cards + last move */
-    .players {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .player-card {
-      border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .player-card.is-active {
-      border: 2px solid var(--brass);
-      padding: 11px;
-    }
-
-    .player-head {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-    }
-
-    .player-role {
-      font-size: 0.72rem;
-      color: var(--ink-soft);
-    }
-
-    .player-count {
-      font-size: 1.75rem;
-      font-weight: 700;
-      line-height: 1.1;
-      margin-top: 2px;
-    }
-
-    .player-captured {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      font-size: 0.72rem;
-      color: var(--ink-soft);
-    }
-
-    .cap-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--ink);
-      white-space: nowrap;
-    }
-
-    .swatch.mini {
-      width: 12px;
-      height: 12px;
-      border-width: 1.5px;
     }
 
     /* Home screen */
@@ -685,6 +573,10 @@
       }
     }
 
+    @media (max-width: 420px) {
+      .segmented { flex-direction: column; }
+    }
+
     .segmented {
       display: flex;
       gap: 10px;
@@ -732,7 +624,7 @@
 
     .seg:focus-visible,
     .btn:focus-visible {
-      outline: 3px solid #75cfff;
+      outline: 3px solid #0b3f6d;
       outline-offset: 2px;
     }
 
@@ -759,6 +651,10 @@
       width: 100%;
       padding: 12px 20px;
     }
+
+    .menu-content #continueBtn { margin-top: 10px; }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .start-note {
       margin: 9px 0 0;
@@ -833,6 +729,7 @@
     .menu-tools {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 18px;
       margin-top: 18px;
     }
@@ -847,10 +744,11 @@
       color: var(--brass);
       font: 600 0.78rem 'Inter', sans-serif;
       cursor: pointer;
+      min-height: 28px;
     }
 
     .history-toggle:focus-visible {
-      outline: 3px solid #75cfff;
+      outline: 3px solid #0b3f6d;
       outline-offset: 3px;
     }
 
@@ -875,6 +773,7 @@
       font-size: .82rem;
       color: var(--ink);
       cursor: pointer;
+      min-height: 28px;
     }
 
     .sound-setting input {
@@ -883,6 +782,9 @@
 
     .rules summary {
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      min-height: 28px;
       font-size: 0.78rem;
       font-weight: 600;
       color: var(--brass);
@@ -897,7 +799,7 @@
 
 <body>
 
-  <div class="app">
+  <main class="app">
 
     <!-- MAIN MENU -->
     <div class="menu-screen" id="menuScreen">
@@ -924,11 +826,14 @@
           </div>
 
           <button class="btn primary" id="startBtn">Start game</button>
-          <p class="start-note">Play in your browser</p>
+          <!-- Adds continue button -->
+          <button class="btn ghost" id="continueBtn" disabled>Continue</button>
           <div class="menu-tools">
             <details class="rules settings">
               <summary>Settings</summary>
               <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+              <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
+              <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
             </details>
             <button type="button" class="history-toggle" id="historyButton" aria-controls="historyPanel" aria-expanded="false">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 2 5-6"/></svg>
@@ -948,53 +853,32 @@
 
     <!-- GAME SCREEN -->
     <div class="game-screen hidden" id="gameScreen">
-      <header>
+      <header id="gameHeader">
         <div>
-          <h1>Checkers</h1>
+          <h1 id="gameTitle" tabindex="-1">Checkers</h1>
           <p></p>
         </div>
       </header>
 
-      <div class="layout">
-        <div class="board-col">
+      <div class="layout" id="gameContent">
+        <div class="board-column">
           <div class="board-wrap">
-            <div class="board" id="board"></div>
+            <div class="board" id="board" role="group" aria-label="Checkers board" aria-describedby="boardInstructions"></div>
           </div>
-
-          <section class="history-card" aria-label="Move history">
-            <p class="log-title">Move history</p>
-            <div class="log" id="log"></div>
-          </section>
-
-          <ul class="legend" aria-label="Board key">
-            <li><span class="key key-select" aria-hidden="true"></span>Selected piece</li>
-            <li><span class="key key-move" aria-hidden="true"></span>Legal move</li>
-            <li><span class="key key-last" aria-hidden="true"></span>Last move</li>
-          </ul>
+          <div class="material-scores" role="status" aria-live="polite" aria-label="Pieces captured">
+            <span class="material-side">White <span class="captured hidden" id="whiteCaptured" aria-hidden="true"><span class="captured-stack black"></span></span><strong id="whiteScore">0</strong></span>
+            <span class="material-side">Black <span class="captured hidden" id="blackCaptured" aria-hidden="true"><span class="captured-stack white"></span></span><strong id="blackScore">0</strong></span>
+          </div>
+          <p class="board-instructions" id="boardInstructions">Use arrow keys to navigate squares. Press Enter or Space to select a piece and its destination. Press M to toggle a red mark when red markings are enabled. You can also click or drag pieces.</p>
+          <p class="screen-reader-only" id="markStatus" role="status" aria-live="polite"></p>
         </div>
 
         <div class="panel">
-          <div class="players" id="players" aria-label="Players">
-            <div class="player-card is-active" id="cardWhite">
-              <div class="player-head"><span class="swatch white"></span><span>White</span></div>
-              <div class="player-role" id="roleWhite">Player 1</div>
-              <div class="player-count" id="countWhite" aria-label="White pieces left">12</div>
-              <div class="player-captured" id="capturedWhite"><span>Captured</span><span class="cap-chip">None</span></div>
-            </div>
-            <div class="player-card" id="cardBlack">
-              <div class="player-head"><span class="swatch black"></span><span>Black</span></div>
-              <div class="player-role" id="roleBlack">Player 2</div>
-              <div class="player-count" id="countBlack" aria-label="Black pieces left">12</div>
-              <div class="player-captured" id="capturedBlack"><span>Captured</span><span class="cap-chip">None</span></div>
-            </div>
+          <div class="turn-indicator" id="turnIndicator" aria-live="polite">
+            <span class="swatch white"></span> White to move
           </div>
-
-          <div class="turn-banner">
-            <div class="turn-indicator" id="turnIndicator">
-              <span class="swatch white"></span> White to move
-            </div>
-            <div class="status" id="status" aria-live="polite">Select a piece to see its legal moves.</div>
-          </div>
+          <div class="status" id="status" role="status" aria-live="polite">Select a piece to see its legal moves.</div>
+          <p class="move-legend">Blue ring: selected piece · Cyan dot: legal move · Yellow ring: last move</p>
 
           <hr class="divider">
 
@@ -1016,15 +900,22 @@
           <details class="rules settings">
             <summary>Settings</summary>
             <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
+            <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
+            <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
           </details>
 
           <button class="btn primary" id="newGameBtn">New game</button>
-          <div class="btn-row">
-            <button class="btn ghost" id="rematchBtn">Rematch</button>
-            <button class="btn ghost" id="menuBtn">Back to menu</button>
+          <button class="btn ghost" id="rematchBtn">Rematch</button>
+          <button class="btn ghost" id="menuBtn">Back to menu</button>
+
+          <hr class="divider">
+
+          <div>
+            <p class="log-title">Move history</p>
+            <div class="log" id="log" role="log" aria-label="Move history" aria-live="off"></div>
           </div>
 
-          <p class="note">8×8 checkers with forced captures and chain jumps. White moves first.</p>
+          <p class="note">8×8 checkers with forced captures and chain jumps. White moves first. Keyboard: arrow keys navigate squares, Enter or Space selects, and M marks a square when red markings are enabled.</p>
         </div>
       </div>
       <div class="result-overlay hidden" id="resultOverlay" role="dialog" aria-modal="true"
@@ -1041,72 +932,12 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script src="js/logic/draughtAdapter.js"></script>
   <script src="js/bot/bot.js"></script>
   <script src="js/database.js"></script>
   <script src="js/game.js"></script>
-
-  <!-- Player cards: reads the board, turn indicator, and move log already on the page -->
-  <script>
-    (function () {
-      var STARTING_PIECES = 12;
-      var $ = function (id) { return document.getElementById(id); };
-      var boardEl = $('board');
-      var turnEl = $('turnIndicator');
-      var opponentEl = $('opponent');
-      var logEl = $('log');
-
-      // Tag each history line by side so the CSS can show a white or black dot in front of it.
-      function tagLog() {
-        logEl.querySelectorAll('div:not([data-tagged])').forEach(function (el) {
-          var t = el.textContent;
-          el.setAttribute('data-tagged', '1');
-          el.classList.add(t.indexOf('White:') === 0 ? 'log-white' : t.indexOf('Black:') === 0 ? 'log-black' : 'log-note');
-        });
-      }
-
-      function capturedMarkup(count, color) {
-        if (count <= 0) return '<span>Captured</span><span class="cap-chip">None</span>';
-        return '<span>Captured</span><span class="cap-chip"><span class="swatch mini ' + color + '"></span>×' + count + '</span>';
-      }
-
-      function update() {
-        var white = boardEl.querySelectorAll('.piece.white').length;
-        var black = boardEl.querySelectorAll('.piece.black').length;
-
-        $('countWhite').textContent = white;
-        $('countBlack').textContent = black;
-        // each card shows the opponent pieces that side has taken
-        $('capturedWhite').innerHTML = capturedMarkup(STARTING_PIECES - black, 'black');
-        $('capturedBlack').innerHTML = capturedMarkup(STARTING_PIECES - white, 'white');
-
-        var vsComputer = opponentEl.value === 'bot';
-        $('roleWhite').textContent = vsComputer ? 'You' : 'Player 1';
-        $('roleBlack').textContent = vsComputer ? 'Computer' : 'Player 2';
-
-        var swatch = turnEl.querySelector('.swatch');
-        var turn = swatch ? (swatch.classList.contains('black') ? 'black' : 'white') : null;
-        $('cardWhite').classList.toggle('is-active', turn === 'white');
-        $('cardBlack').classList.toggle('is-active', turn === 'black');
-      }
-
-      var queued = false;
-      function schedule() {
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(function () { queued = false; update(); });
-      }
-
-      new MutationObserver(schedule).observe(boardEl, { childList: true, subtree: true });
-      new MutationObserver(schedule).observe(turnEl, { childList: true, subtree: true, attributes: true });
-      new MutationObserver(tagLog).observe(logEl, { childList: true });
-      opponentEl.addEventListener('change', schedule);
-      tagLog();
-      update();
-    })();
-  </script>
 
 </body>
 
