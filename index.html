@@ -765,6 +765,54 @@
       margin: 6px 0;
     }
 
+    .saved-games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+
+    .saved-game-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      font-size: 0.78rem;
+    }
+
+    .saved-game-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
+
+    .saved-game-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.74rem;
+      width: auto;
+    }
+
+    .match-meta {
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      background: var(--bg);
+      padding: 8px 10px;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+
     .sound-setting {
       display: flex;
       align-items: center;
@@ -817,17 +865,26 @@
         <div class="menu-content">
           <p class="section-kicker">Start a match</p>
           <h2 class="menu-card-title">How will you play?</h2>
-          <p class="menu-card-copy">Choose an opponent</p>
+          <p class="menu-card-copy">Choose an opponent and difficulty</p>
           <div class="segmented" id="modeGrid">
-            <button type="button" class="seg active" data-mode="friend"><strong>Pass &amp; Play</strong><small>Two
+            <button type="button" class="seg active" data-mode="friend"><strong>Pass & Play</strong><small>Two
                 people, one screen</small></button>
             <button type="button" class="seg" data-mode="bot"><strong>Solo Game</strong><small>Play against the
                 computer</small></button>
           </div>
 
+          <div class="field hidden" id="difficultyField" style="margin-bottom: 16px;">
+            <label for="difficulty">Bot Difficulty</label>
+            <select id="difficulty">
+              <option value="easy" selected>Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+
           <button class="btn primary" id="startBtn">Start game</button>
-          <!-- Adds continue button -->
-          <button class="btn ghost" id="continueBtn" disabled>Continue</button>
+          <button class="btn ghost" id="continueBtn" disabled>Continue last game</button>
+
           <div class="menu-tools">
             <details class="rules settings">
               <summary>Settings</summary>
@@ -835,18 +892,29 @@
               <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
               <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
             </details>
+            <button type="button" class="history-toggle" id="savedGamesButton" aria-controls="savedGamesPanel" aria-expanded="false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Load Saved Game
+            </button>
             <button type="button" class="history-toggle" id="historyButton" aria-controls="historyPanel" aria-expanded="false">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 2 5-6"/></svg>
               Game History
             </button>
           </div>
+
+          <div class="history-panel hidden" id="savedGamesPanel" aria-live="polite">
+            <strong>Saved games</strong>
+            <div class="saved-games-list" id="savedGamesList">
+              <p>No saved games found.</p>
+            </div>
+          </div>
+
           <div class="history-panel hidden" id="historyPanel" aria-live="polite">
             <strong>User's record</strong>
             <p id="historyRecord">Wins: 0 · Losses: 0</p>
             <p id="historyOutcome">Previous game: None yet</p>
             <p id="historyPercentage">Win percentage: 0%</p>
           </div>
-
         </div>
       </div>
     </div>
@@ -878,25 +946,11 @@
             <span class="swatch white"></span> White to move
           </div>
           <div class="status" id="status" role="status" aria-live="polite">Select a piece to see its legal moves.</div>
+          <div class="match-meta" id="matchMeta">Mode: Pass & Play</div>
           <p class="move-legend">Blue ring: selected piece · Cyan dot: legal move · Yellow ring: last move</p>
 
           <hr class="divider">
 
-          <div class="field">
-            <label for="opponent">Opponent</label>
-            <select id="opponent">
-              <option value="friend" selected>Friend (pass and play)</option>
-              <option value="bot">Computer</option>
-            </select>
-          </div>
-          <div class="field" id="difficultyField">
-            <label for="difficulty">Difficulty</label>
-            <select id="difficulty">
-              <option value="easy" selected>Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
           <details class="rules settings">
             <summary>Settings</summary>
             <label class="sound-setting"><input type="checkbox" data-sound-toggle> Sound effects</label>
@@ -904,9 +958,9 @@
             <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
           </details>
 
-          <button class="btn primary" id="newGameBtn">New game</button>
+          <button class="btn primary" id="newGameBtn">Main Menu</button>
+          <button class="btn ghost" id="saveGameBtn">Save game</button>
           <button class="btn ghost" id="rematchBtn">Rematch</button>
-          <button class="btn ghost" id="menuBtn">Back to menu</button>
 
           <hr class="divider">
 

@@ -337,9 +337,29 @@
     }
   }
 
+  function updateMatchMeta() {
+    const metaEl = $('matchMeta');
+    if (!metaEl) return;
+    if (mode === 'bot') {
+      const diffName = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+      metaEl.textContent = `Mode: Solo vs Computer (${diffName})`;
+    } else {
+      metaEl.textContent = 'Mode: Pass & Play (2 Players)';
+    }
+  }
+
   function setMode(next) {
-    mode = next; $('opponent').value = next;
-    document.querySelectorAll('[data-mode]').forEach(btn => { btn.classList.toggle('active', btn.dataset.mode === next); btn.setAttribute('aria-pressed', String(btn.dataset.mode === next)); });
+    mode = next;
+    document.querySelectorAll('[data-mode]').forEach(btn => {
+      const isSelected = btn.dataset.mode === next;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-pressed', String(isSelected));
+    });
+    const diffField = $('difficultyField');
+    if (diffField) {
+      diffField.classList.toggle('hidden', next !== 'bot');
+    }
+    updateMatchMeta();
   }
 
   function setPageHash(playing) {
@@ -362,8 +382,153 @@
     }
   }
 
-  function showGame() { $('menuScreen').classList.add('hidden'); $('gameScreen').classList.remove('hidden'); newGame(); setPageHash(true); $('gameTitle').focus(); }
-  // Restores saved game
+  // List saved in-progress game sessions from IndexedDB
+  async function renderSavedGamesList() {
+    const listEl = $('savedGamesList');
+    if (!listEl) return;
+    try {
+      const sessions = await window.CheckersDB.listGameSessions();
+      const activeSessions = sessions.filter(s => s.gameStatus === 'inProgress');
+      listEl.replaceChildren();
+
+      if (!activeSessions.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No saved games found.';
+        listEl.appendChild(empty);
+        return;
+      }
+
+      activeSessions.forEach(session => {
+        const item = document.createElement('div');
+        item.className = 'saved-game-item';
+
+        const info = document.createElement('div');
+        info.className = 'saved-game-info';
+
+        const title = document.createElement('strong');
+        const modeLabel = session.opponentMode === 'bot'
+          ? `vs Computer (${session.aiDifficulty})`
+          : 'Pass & Play';
+        title.textContent = `${modeLabel} · ${name(session.currentTurn)}'s turn`;
+
+        const dateText = document.createElement('small');
+        const date = new Date(session.updatedAt);
+        dateText.textContent = date.toLocaleString();
+
+        info.append(title, dateText);
+
+        const actions = document.createElement('div');
+        actions.className = 'saved-game-actions';
+
+        const loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'btn primary btn-sm';
+        loadBtn.textContent = 'Load';
+        loadBtn.addEventListener('click', () => {
+          sound('click');
+          loadSavedSession(session.gameId);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn ghost btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', async () => {
+          sound('click');
+          await window.CheckersDB.deleteGameSession(session.gameId);
+          if (readSave()?.gameId === session.gameId) clearSave();
+          renderSavedGamesList();
+        });
+
+        actions.append(loadBtn, delBtn);
+        item.append(info, actions);
+        listEl.appendChild(item);
+      });
+    } catch (error) {
+      listEl.innerHTML = '<p>Could not load saved games.</p>';
+      console.warn('Could not list saved sessions.', error);
+    }
+  }
+
+  // Load a specific game session by gameId from IndexedDB
+  async function loadSavedSession(targetGameId) {
+    try {
+      const session = await window.CheckersDB.getGameSession(targetGameId);
+      if (!session) {
+        alert('Saved game could not be found.');
+        renderSavedGamesList();
+        return;
+      }
+      const moves = await window.CheckersDB.getMovesForGame(targetGameId);
+      stopBot();
+
+      board = session.boardState;
+      current = session.currentTurn;
+      mode = session.opponentMode;
+      difficulty = session.aiDifficulty || 'easy';
+      gameId = session.gameId;
+      moveNumber = moves.length;
+      selected = null;
+      legal = [];
+      chain = false;
+      over = session.gameStatus === 'completed';
+
+      const lastRecorded = moves[moves.length - 1];
+      lastMove = lastRecorded
+        ? { from: lastRecorded.startPosition, to: lastRecorded.endPosition, capture: lastRecorded.isCapture }
+        : null;
+
+      markedSquares.clear();
+      startingCounts = { white: 12, black: 12 };
+      focusSquare = [5, 0];
+      sessionSavePromise = Promise.resolve();
+      moveSavePromise = Promise.resolve();
+
+      setMode(mode);
+      if ($('difficulty')) $('difficulty').value = difficulty;
+      updateMatchMeta();
+
+      logEl.replaceChildren();
+      moves.forEach(m => {
+        log(`${name(m.player)}: ${label(...m.startPosition)} → ${label(...m.endPosition)}${m.isCapture ? ' (capture)' : ''}${m.isPromotion ? ' — crowned' : ''}`);
+      });
+
+      $('resultOverlay').classList.add('hidden');
+      $('gameHeader').inert = false;
+      $('gameContent').inert = false;
+      $('menuScreen').classList.add('hidden');
+      $('gameScreen').classList.remove('hidden');
+
+      turn();
+      render();
+      saveGame();
+      status(mode === 'bot' && current === 'black' ? 'Computer is thinking…' : 'Game loaded. Select a piece to see its legal moves.');
+      setPageHash(true);
+      $('gameTitle').focus();
+      if (mode === 'bot' && current === 'black' && !over) scheduleBot();
+    } catch (error) {
+      console.warn('Failed to load game session.', error);
+    }
+  }
+
+  // Explicitly saves the active game to both localStorage and IndexedDB
+  async function manualSaveGame() {
+    if (!board || over) return;
+    saveGame();
+    await updateGameSession();
+    status('Game saved! You can resume it anytime from the main menu.');
+  }
+
+  function showGame() {
+    updateMatchMeta();
+    $('menuScreen').classList.add('hidden');
+    $('gameScreen').classList.remove('hidden');
+    newGame();
+    setPageHash(true);
+    $('gameTitle').focus();
+  }
+
+  // Restores quick-saved game from localStorage
   function continueGame() {
     const saved = readSave();
     if (!saved) { updateContinue(); return; }
@@ -381,7 +546,9 @@
     focusSquare = [5, 0];
     legal = chain && Array.isArray(selected) ? rules.pieceMoves(board, ...selected).jumps : [];
     mode = saved.mode; difficulty = saved.difficulty;
-    setMode(mode); $('difficulty').value = difficulty;
+    setMode(mode);
+    if ($('difficulty')) $('difficulty').value = difficulty;
+    updateMatchMeta();
     logEl.replaceChildren(); saved.moves.forEach(log);
     $('resultOverlay').classList.add('hidden');
     $('gameHeader').inert = false; $('gameContent').inert = false;
@@ -393,23 +560,48 @@
     $('gameTitle').focus();
     if (mode === 'bot' && current === 'black') scheduleBot();
   }
-  function showMenu() { stopBot(); sounds.gameOver.pause(); sounds.gameOver.currentTime = 0; $('resultOverlay').classList.add('hidden'); $('gameHeader').inert = false; $('gameContent').inert = false; $('gameScreen').classList.add('hidden'); $('menuScreen').classList.remove('hidden'); setPageHash(false); if ($('historyPanel') && !$('historyPanel').classList.contains('hidden')) loadHistory(); $('startBtn').focus(); }
-  document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => { setMode(btn.dataset.mode); sound('click'); }));
-  $('opponent').addEventListener('change', () => { setMode($('opponent').value); sound('click'); newGame(); });
+
+  function showMenu() {
+    stopBot();
+    if (board && !over) {
+      saveGame();
+      updateGameSession();
+    }
+    sounds.gameOver.pause();
+    sounds.gameOver.currentTime = 0;
+    $('resultOverlay').classList.add('hidden');
+    $('gameHeader').inert = false;
+    $('gameContent').inert = false;
+    $('gameScreen').classList.add('hidden');
+    $('menuScreen').classList.remove('hidden');
+    setPageHash(false);
+    updateContinue();
+    if ($('historyPanel') && !$('historyPanel').classList.contains('hidden')) loadHistory();
+    if ($('savedGamesPanel') && !$('savedGamesPanel').classList.contains('hidden')) renderSavedGamesList();
+    $('startBtn').focus();
+  }
+
+  document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => {
+    setMode(btn.dataset.mode);
+    sound('click');
+  }));
+
   const difficultyEl = $('difficulty');
   if (difficultyEl) {
     difficultyEl.addEventListener('change', () => {
       difficulty = difficultyEl.value;
+      updateMatchMeta();
       sound('click');
-      newGame();
     });
   }
+
   document.querySelectorAll('[data-sound-toggle]').forEach(input => input.addEventListener('change', () => {
     soundOn = input.checked;
     document.querySelectorAll('[data-sound-toggle]').forEach(other => other.checked = soundOn);
     try { localStorage.setItem('checkers-sound', soundOn ? 'on' : 'off'); } catch (_) { }
     if (soundOn) sound('click');
   }));
+
   for (const [selector, key] of [['[data-drag-toggle]', 'checkers-drag'], ['[data-marks-toggle]', 'checkers-marks']]) {
     document.querySelectorAll(selector).forEach(input => input.addEventListener('change', () => {
       const enabled = input.checked;
@@ -419,27 +611,40 @@
       try { localStorage.setItem(key, enabled ? 'on' : 'off'); } catch (_) { }
     }));
   }
+
   $('historyButton')?.addEventListener('click', () => {
     sound('click');
     const open = !$('historyPanel').classList.toggle('hidden');
     $('historyButton').setAttribute('aria-expanded', String(open));
     if (open) loadHistory();
   });
+
+  $('savedGamesButton')?.addEventListener('click', () => {
+    sound('click');
+    const open = !$('savedGamesPanel').classList.toggle('hidden');
+    $('savedGamesButton').setAttribute('aria-expanded', String(open));
+    if (open) renderSavedGamesList();
+  });
+
   $('startBtn').addEventListener('click', () => { sound('click'); showGame(); });
-  // Handles continue click
   $('continueBtn').addEventListener('click', () => { sound('click'); continueGame(); });
-  $('newGameBtn').addEventListener('click', () => { sound('click'); newGame(); });
+  // "New game" while in an active game saves state and takes the player back to the main menu
+  $('newGameBtn').addEventListener('click', () => { sound('click'); showMenu(); });
+  $('saveGameBtn')?.addEventListener('click', () => { sound('click'); manualSaveGame(); });
   $('rematchBtn').addEventListener('click', () => { sound('click'); newGame(); });
-  $('menuBtn').addEventListener('click', () => { sound('click'); showMenu(); });
   $('resultRematchBtn').addEventListener('click', () => { sound('click'); newGame(); $('gameTitle').focus(); });
   $('resultHomeBtn').addEventListener('click', () => { sound('click'); showMenu(); });
+
   $('resultOverlay').addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
     const first = $('resultRematchBtn'), last = $('resultHomeBtn');
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   });
-  menuArt(); setMode('friend'); updateContinue();
+
+  menuArt();
+  setMode('friend');
+  updateContinue();
   if (location.hash === '#play') {
     if (readSave()) continueGame();
     else showGame();
