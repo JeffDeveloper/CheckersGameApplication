@@ -89,6 +89,7 @@
       session.currentTurn = current;
       session.opponentMode = mode;
       session.gameStatus = over ? 'completed' : 'inProgress';
+      session.aiDifficulty = difficulty;
 
       await window.CheckersDB.saveGameSession(session);
     } catch (error) {
@@ -109,7 +110,8 @@
       boardState: board,
       currentTurn: current,
       opponentMode: mode,
-      gameStatus: 'inProgress'
+      gameStatus: 'inProgress',
+      aiDifficulty: difficulty
     });
 
     gameId = session.gameId;
