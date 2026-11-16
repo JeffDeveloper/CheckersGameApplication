@@ -1,9 +1,8 @@
 /* 
 Entity      | Primary Key| Attributes
-GameSession | gameId     | boardState, currentTurn, opponentMode, gameStatus
+GameSession | gameId     | boardState, currentTurn, opponentMode, gameStatus, aiDifficulty
 MoveHistory | modeId     | gameId, moveNumber, player, startPosition, endPosition, isCapture, isPromotion
 UserStates  | username   | totalWins, totalLosses, totalGames, winPercentage
-AppSettings | settingsId | opponentMode, aiDifficulty
 */
 
 (function (root) {
@@ -16,11 +15,9 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         SESSIONS: 'GameSession',
         MOVES: 'MoveHistory',
         USERS: 'UserStates',
-        SETTINGS: 'AppSettings'
     };
 
     const DEFAULT_USERNAME = 'Player';
-    const DEFAULT_SETTINGS_ID = 'default';
 
     let dbPromise = null;
 
@@ -35,7 +32,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             );
         });
     }
-    // transactionDone returns a Promise that resolves withen a database transaction
+    // transactionDone returns a Promise that resolves when a database transaction
     // completes or rejects if the transaction fails or is aborted.
     function transactionDone(transaction) {
         return new Promise((resolve, reject) => {
@@ -78,7 +75,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             });
         });
     }
-    // Creats a copy of a board position represented by a [row, column] array, after validating its coordinates.
+    // Creates a copy of a board position represented by a [row, column] array, after validating its coordinates.
     function clonePosition(position) {
         if (!Array.isArray(position) || position.length !== 2 || !position.every(Number.isInteger) || position.some(n => n < 0 || n > 7)) {
             throw new TypeError('Expected a board position [row, column].');
@@ -120,9 +117,6 @@ AppSettings | settingsId | opponentMode, aiDifficulty
                 }
                 if (!database.objectStoreNames.contains(STORES.USERS)) {
                     database.createObjectStore(STORES.USERS, { keyPath: 'username' });
-                }
-                if (!database.objectStoreNames.contains(STORES.SETTINGS)) {
-                    database.createObjectStore(STORES.SETTINGS, { keyPath: 'settingsId' });
                 }
             };
             request.onsuccess = () => {
@@ -178,7 +172,8 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             gameStatus: options.gameStatus || 'inProgress',
             winner: options.winner || null,
             createdAt: options.createdAt || now,
-            updatedAt: now
+            updatedAt: now,
+            aiDifficulty: options.aiDifficulty || 'easy'
         };
     }
     // Saves a game session to the database, updating its last-modified timestamp.
@@ -193,7 +188,10 @@ AppSettings | settingsId | opponentMode, aiDifficulty
             throw new TypeError('opponentMode must be friend or bot.');
         }
         if (!['inProgress', 'completed', 'abandoned'].includes(session.gameStatus)) {
-            throw new TypeError('Invalide gameStatus');
+            throw new TypeError('Invalid gameStatus');
+        }
+        if (!['easy', 'medium', 'hard'].includes(session.aiDifficulty)) {
+            throw new TypeError('Difficulty must be easy, medium, or hard.');
         }
         const record = {
             ...session,
@@ -277,7 +275,7 @@ AppSettings | settingsId | opponentMode, aiDifficulty
     // Validates a username and removes any leading or trailing whitespace.
     function normalizeUsername(username) {
         if (typeof username !== 'string' || !username.trim()) {
-            throw new TypeError('Username canot be empty.');
+            throw new TypeError('Username cannot be empty.');
         }
         return username.trim();
     }
@@ -365,40 +363,6 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         });
     }
 
-    // Application Settings
-    // Retrieves saved application settings or returns the default settings.
-    async function getSettings() {
-        const saved = await runTransaction(STORES.SETTINGS, 'readonly', tx => requestResult(tx.objectStore(STORES.SETTINGS).get(DEFAULT_SETTINGS_ID)));
-        return saved || {
-            settingsId: DEFAULT_SETTINGS_ID,
-            username: DEFAULT_USERNAME,
-            opponentMode: 'friend',
-            aiDifficulty: 'easy'
-        };
-    }
-    // Saves application settings, including the username, opponent mode, and AI difficulty
-    async function saveSettings(settings) {
-        if (!settings) throw new TypeError('Settings are required.');
-
-        const opponentMode = settings.opponentMode || 'friend';
-        const aiDifficulty = settings.aiDifficulty || 'easy';
-        const username = normalizeUsername(settings.username || DEFAULT_USERNAME);
-        if (!['friend', 'bot'].includes(opponentMode)) {
-            throw new TypeError('opponentMode must be friend or bot.');
-        }
-        if (!['easy', 'medium', 'hard'].includes(aiDifficulty)) {
-            throw new TypeError('aiDifficulty must be easy, medium, or hard.');
-        }
-        const record = {
-            settingsId: DEFAULT_SETTINGS_ID,
-            username,
-            opponentMode,
-            aiDifficulty
-        };
-        await runTransaction(STORES.SETTINGS, 'readwrite', tx => requestResult(tx.objectStore(STORES.SETTINGS).put(record)));
-        return record;
-    }
-
     // Public API
     root.CheckersDB = Object.freeze({
         initialize: openDatabase,
@@ -412,17 +376,10 @@ AppSettings | settingsId | opponentMode, aiDifficulty
         getUserState,
         saveUserState,
         getOrCreateUserState,
-        recordGameResult,
-        getSettings,
-        saveSettings
+        recordGameResult
     });
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 
 /*
-Create unique gameId when starting game
-save the board and current turn after completed turns
-record each move, INCLUDING captures and promotions
-mark completed sessions and update player statistics exactly one time per finished game
 add a way to list and load previous game sessions
-connect the future username and AI-difficulty controls to AppSettings
 */
