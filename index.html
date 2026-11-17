@@ -114,9 +114,14 @@
       grid-template-rows: repeat(8, 1fr);
       aspect-ratio: 1 / 1;
       width: 100%;
-      border: 0;
-      border-radius: 2px;
+      border: 8px solid #28313a;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px -10px rgba(20, 30, 40, 0.45);
       overflow: hidden;
+    }
+
+    @media (forced-colors: active) {
+      .board { border-color: CanvasText; }
     }
 
     .sq {
@@ -842,6 +847,103 @@
     .rules summary::-webkit-details-marker {
       display: none;
     }
+
+    /* ===== Side panel + board column enhancements ===== */
+    .panel { gap: 12px; padding: 16px; }
+
+    .player-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .player-card {
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .player-card.active {
+      border-color: var(--brass);
+      box-shadow: 0 0 0 3px rgba(23, 104, 182, 0.15);
+    }
+    .pc-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+    .pc-line { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--ink-soft); white-space: nowrap; }
+    .pc-line strong, .pc-line .pc-num { color: var(--ink); font-weight: 700; font-size: 0.9rem; }
+    .pc-line .captured-stack { margin-right: -2px; }
+
+    .banner {
+      background: #dbeeff;
+      border: 1px solid #a9d3f5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .banner .turn-indicator { font-size: 0.95rem; }
+    .banner .status { min-height: 0; color: #24445f; font-size: 0.82rem; }
+    .banner .status.win { color: var(--ink); }
+
+    .match-meta { padding: 6px 10px; font-size: 0.76rem; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .controls .btn { padding: 9px 10px; }
+    .controls .btn.primary { grid-column: 1 / -1; }
+    .panel .settings summary { min-height: 24px; }
+    .panel .sound-setting { margin-top: 6px; }
+    .panel .note { padding-top: 10px; }
+
+    /* Board column */
+    .board-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+    .board-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      font-size: 0.76rem;
+      color: var(--ink-soft);
+      align-items: center;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .lg-sq { width: 22px; height: 22px; background: var(--dark-sq); border-radius: 2px; position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .lg-sq.sel::before { content: ""; position: absolute; inset: 2px; border: 3px solid #7ae7ff; border-radius: 2px; }
+    .lg-sq.last { box-shadow: inset 0 0 0 3px #ffd452; }
+    .lg-sq .lg-dot { width: 8px; height: 8px; border-radius: 50%; background: #85eaff; box-shadow: 0 0 0 2px rgba(8, 38, 55, 0.55), 0 0 6px #85eaff; }
+
+    .history-section { border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); padding: 12px 14px; }
+    .history-section .log-title { font-weight: 600; margin-bottom: 8px; }
+    .history-section .log {
+      max-height: 168px;
+      overflow-y: auto;
+      padding: 2px 6px 2px 0;
+      gap: 3px;
+      scroll-padding-top: 4px;
+    }
+    .history-section .log > div {
+      flex: none;                /* prevents the first entry being squashed / cut off */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      color: var(--ink-soft);
+      font-weight: 400;
+      line-height: 1.3;
+    }
+    .history-section .log > div:last-child {
+      background: #fff3c4;
+      box-shadow: inset 3px 0 0 #ffd452;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .move-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+    .move-dot.white { background: #fff; border: 2px solid var(--white-piece-edge); }
+    .move-dot.black { background: var(--black-piece); border: 2px solid var(--black-piece-edge); outline: 1px solid var(--white-piece-edge); }
+    @media (forced-colors: active) {
+      .player-card.active { border-color: Highlight; }
+      .history-section .log > div:last-child { border: 1px solid Highlight; }
+    }
   </style>
 </head>
 
@@ -929,27 +1031,54 @@
       </header>
 
       <div class="layout" id="gameContent">
-        <div class="board-column">
+        <div class="board-col board-column">
           <div class="board-wrap">
             <div class="board" id="board" role="group" aria-label="Checkers board" aria-describedby="boardInstructions"></div>
           </div>
-          <div class="material-scores" role="status" aria-live="polite" aria-label="Pieces captured">
-            <span class="material-side">White <span class="captured hidden" id="whiteCaptured" aria-hidden="true"><span class="captured-stack black"></span></span><strong id="whiteScore">0</strong></span>
-            <span class="material-side">Black <span class="captured hidden" id="blackCaptured" aria-hidden="true"><span class="captured-stack white"></span></span><strong id="blackScore">0</strong></span>
+
+          <div class="board-legend" aria-label="Board legend">
+            <span class="legend-item"><span class="lg-sq sel" aria-hidden="true"></span>Selected piece</span>
+            <span class="legend-item"><span class="lg-sq" aria-hidden="true"><span class="lg-dot"></span></span>Legal move</span>
+            <span class="legend-item"><span class="lg-sq last" aria-hidden="true"></span>Last move</span>
           </div>
+
+          <section class="history-section" aria-labelledby="logTitle">
+            <p class="log-title" id="logTitle">Move history</p>
+            <div class="log" id="log" role="log" aria-label="Move history" aria-live="off"></div>
+          </section>
+
           <p class="board-instructions" id="boardInstructions">Use arrow keys to navigate squares. Press Enter or Space to select a piece and its destination. Press M to toggle a red mark when red markings are enabled. You can also click or drag pieces.</p>
           <p class="screen-reader-only" id="markStatus" role="status" aria-live="polite"></p>
         </div>
 
         <div class="panel">
-          <div class="turn-indicator" id="turnIndicator" aria-live="polite">
-            <span class="swatch white"></span> White to move
+          <div class="player-cards" role="group" aria-label="Players">
+            <div class="player-card active" id="whiteCard">
+              <div class="pc-head"><span class="swatch white"></span><span id="whiteLabel">White</span></div>
+              <div class="pc-line"><span class="pc-num" id="whiteRemaining">12</span> remaining</div>
+              <div class="pc-line">Captured <span class="captured hidden" id="whiteCaptured" aria-hidden="true"><span class="captured-stack black"></span></span><strong id="whiteScore">0</strong></div>
+            </div>
+            <div class="player-card" id="blackCard">
+              <div class="pc-head"><span class="swatch black"></span><span id="blackLabel">Black</span></div>
+              <div class="pc-line"><span class="pc-num" id="blackRemaining">12</span> remaining</div>
+              <div class="pc-line">Captured <span class="captured hidden" id="blackCaptured" aria-hidden="true"><span class="captured-stack white"></span></span><strong id="blackScore">0</strong></div>
+            </div>
           </div>
-          <div class="status" id="status" role="status" aria-live="polite">Select a piece to see its legal moves.</div>
-          <div class="match-meta" id="matchMeta">Mode: Pass & Play</div>
-          <p class="move-legend">Blue ring: selected piece · Cyan dot: legal move · Yellow ring: last move</p>
 
-          <hr class="divider">
+          <div class="banner">
+            <div class="turn-indicator" id="turnIndicator" aria-live="polite">
+              <span class="swatch white"></span> White to move
+            </div>
+            <div class="status" id="status" role="status" aria-live="polite">Select a piece to see its legal moves.</div>
+          </div>
+
+          <div class="match-meta" id="matchMeta">Mode: Pass & Play</div>
+
+          <div class="controls">
+            <button class="btn primary" id="newGameBtn">Main Menu</button>
+            <button class="btn ghost" id="saveGameBtn">Save game</button>
+            <button class="btn ghost" id="rematchBtn">Rematch</button>
+          </div>
 
           <details class="rules settings">
             <summary>Settings</summary>
@@ -957,17 +1086,6 @@
             <label class="sound-setting"><input type="checkbox" data-drag-toggle> Drag and drop pieces</label>
             <label class="sound-setting"><input type="checkbox" data-marks-toggle> Right-click red markings</label>
           </details>
-
-          <button class="btn primary" id="newGameBtn">Main Menu</button>
-          <button class="btn ghost" id="saveGameBtn">Save game</button>
-          <button class="btn ghost" id="rematchBtn">Rematch</button>
-
-          <hr class="divider">
-
-          <div>
-            <p class="log-title">Move history</p>
-            <div class="log" id="log" role="log" aria-label="Move history" aria-live="off"></div>
-          </div>
 
           <p class="note">8×8 checkers with forced captures and chain jumps. White moves first. Keyboard: arrow keys navigate squares, Enter or Space selects, and M marks a square when red markings are enabled.</p>
         </div>
@@ -992,6 +1110,64 @@
   <script src="js/bot/bot.js"></script>
   <script src="js/database.js"></script>
   <script src="js/game.js"></script>
+
+  <script>
+    /* Side-panel + move-history enhancements. Reads the elements game.js already
+       updates (scores, turn text, match mode, log) and reflects them in the new UI. */
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      var log = $('log');
+
+      function updateLabels() {
+        var solo = /solo|computer|bot/i.test($('matchMeta').textContent || '');
+        $('whiteLabel').textContent = solo ? 'You' : 'Player 1';
+        $('blackLabel').textContent = solo ? 'Computer' : 'Player 2';
+      }
+
+      function updateCounts() {
+        var board = $('board');
+        if (!board.children.length) return; // no game rendered yet: keep defaults
+        $('whiteRemaining').textContent = board.querySelectorAll('.piece.white').length;
+        $('blackRemaining').textContent = board.querySelectorAll('.piece.black').length;
+      }
+
+      function updateActive() {
+        var t = ($('turnIndicator').textContent || '').toLowerCase();
+        var over = $('status').classList.contains('win');
+        var w = !over && t.indexOf('white') !== -1 && !(t.indexOf('black') !== -1 && t.indexOf('black') < t.indexOf('white'));
+        var b = !over && !w && t.indexOf('black') !== -1;
+        $('whiteCard').classList.toggle('active', w);
+        $('blackCard').classList.toggle('active', b);
+      }
+
+      var logObserver = new MutationObserver(decorateLog);
+      function decorateLog() {
+        logObserver.disconnect();
+        Array.prototype.forEach.call(log.children, function (el, i) {
+          if (el.querySelector(':scope > .move-dot')) return;
+          var txt = el.textContent || '';
+          var side = /\bwhite\b/i.test(txt) ? 'white' : /\bblack\b/i.test(txt) ? 'black' : (i % 2 === 0 ? 'white' : 'black');
+          var dot = document.createElement('span');
+          dot.className = 'move-dot ' + side;
+          dot.setAttribute('aria-hidden', 'true');
+          el.insertBefore(dot, el.firstChild);
+        });
+        log.scrollTop = log.scrollHeight;
+        logObserver.observe(log, { childList: true });
+      }
+
+      function watch(el, fn, opts) {
+        fn();
+        new MutationObserver(fn).observe(el, opts || { childList: true, characterData: true, subtree: true });
+      }
+
+      watch($('matchMeta'), updateLabels);
+      watch($('board'), updateCounts, { childList: true, subtree: true });
+      watch($('turnIndicator'), updateActive);
+      watch($('status'), updateActive, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+      decorateLog();
+    })();
+  </script>
 
 </body>
 
